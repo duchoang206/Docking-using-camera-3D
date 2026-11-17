@@ -97,7 +97,7 @@ Bối cảnh từ người dùng:
 
 | Hướng | Ưu | Nhược | Quyết định |
 |-------|----|-------|-----------|
-| **A. YOLO 2D → frustum → ICP** (theo file .md và các repo) | Tốt trong cảnh lộn xộn. | Cần **ảnh RGB** (camera có thể chỉ cho point cloud). Phải thu thập và gán nhãn dữ liệu cho từng loại vật. YOLO là khâu **nặng nhất** trên CPU yếu (~50–150 ms/khung trên RPi). Thêm phụ thuộc nặng. | Không làm mặc định. Chừa điểm móc nối `Detection2DArray` cho giai đoạn sau. |
+| **A. YOLO 2D → frustum → ICP** (theo file .md và các repo) | Tốt trong cảnh lộn xộn. | Cần **ảnh RGB** (camera có thể chỉ cho point cloud). Phải thu thập và gán nhãn dữ liệu cho từng loại vật. YOLO là khâu **nặng nhất** trên CPU yếu (~50–150 ms/khung trên RPi). Thêm phụ thuộc nặng. | Không làm mặc định. **Đã thử (2026-11-17, mục 7.5):** mặt nạ từng pixel (không phải bbox) dùng cho cả tìm kiếm và ICP, thành đầu vào tùy chọn `mask_topic`. |
 | **B. Hình học thuần:** tìm kiếm tương quan 2.5D đa dải + ICP point-to-plane trên template | Không cần huấn luyện. Chạy với **mọi** camera có point cloud. Nhẹ (FFT + numpy). Tự đánh giá được độ tin cậy. | Cần template cho từng loại vật. Cảnh rất lộn xộn có thể gây nhầm. | **CHỌN.** Giảm rủi ro nhầm bằng ROI, phạt vùng-phải-trống và kiểm tra mơ hồ. |
 | **C. Marker (AprilTag/ArUco)** | Rẻ, rất chính xác. | Phải dán marker lên **mọi** vật (không hợp với "vật bất kỳ"). Cần RGB. | Chỉ dùng làm **ground truth** khi đo sai số thực tế. |
 
@@ -220,6 +220,21 @@ flowchart LR
   - (a) mới mất dấu dưới `hold_timeout` = 2 s, **hoặc**
   - (b) robot đang ở **vùng mù**, tức khoảng cách từ robot tới mặt vật < `blind_zone_distance` = 0.6 m.
 - Vì vật đứng yên trong `odom`, pose này luôn đúng, chỉ trừ phần trôi odometry trên quãng ngắn. Nhờ vậy Nav2 không báo "Lost detection" ở đoạn cuối.
+
+### 7.5 Mặt nạ segmentation (tùy chọn, thêm 2026-11-17)
+
+- **Đầu vào:** `sensor_msgs/Image` (khác 0 = vật) căn với cloud organized. Node chọn mặt nạ có stamp gần cloud nhất (≤ `mask_max_age`), đưa về lưới cloud (lấy mẫu gần nhất, cùng `cloud_stride`), rồi gắn cờ cho từng điểm.
+- **Cân bằng sàn vẫn dùng mọi điểm** (sàn không thuộc mặt nạ). Sau khi cắt ROI: `hard` = tìm kiếm, ICP và cổng chất lượng chỉ chạy trên điểm thuộc mặt nạ; `search` = mặt nạ chỉ dùng để tìm kiếm (không khuyến nghị).
+- **Mặt nạ hỏng không làm hỏng docking:** mặt nạ có ít hơn `min_scene_points` điểm thì bị bỏ qua (`too_few`); thiếu, trễ hoặc khác khung hình thì chỉ dùng hình học.
+- **Kết quả (`benchmark --seg-study`, 4 cảnh × 40 tư thế):**
+  - Cảnh sạch: không đổi (~1 mm).
+  - Cảnh có vật lạ sát pallet (tường ngay sau / hàng chồng / giữa dãy hàng): bản chỉ-hình-học nhận 22, 8 và 1 trên 40 lần, trong đó 8, 8 và 1 lần **nhận sai**.
+  - Mặt nạ hoàn hảo: 40/40, 0 sai, P95 ≤ 6 mm. Mặt nạ lỗi 3 px: 20–40/40, 0–1 sai.
+  - Chỉ có bbox, hoặc mặt nạ chỉ dùng cho tìm kiếm: vẫn nhận sai.
+- **Phát hiện kèm theo (chưa sửa trong thuật toán hình học):**
+  - Nguyên nhân, theo code và thí nghiệm hạ trần ROI: khi tìm kiếm, điểm cao hơn template bị dồn vào dải độ cao trên cùng; biên cắt ICP 0.2 m vẫn chứa vật lạ. Vì vậy thuật toán khớp nhầm vào tường hoặc hàng hóa.
+  - Hạ trần ROI xuống 0.20 m sửa được cảnh tường và cảnh hàng chồng, nhưng ở cảnh giữa dãy hàng lại nhận sai 20/40 lần.
+  - Hướng sửa đề xuất: bỏ điểm cao hơn template + biên thay vì dồn vào dải trên cùng; trong cổng chất lượng, kiểm tra vùng phải trống ở hai bên và phía trước vật.
 
 ## 8. Template
 

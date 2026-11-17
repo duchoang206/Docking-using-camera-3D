@@ -245,6 +245,45 @@ Chạy `ros2 run camera3d_docking benchmark` trên robot, rồi chỉnh theo th�
 
 **Nghiệm thu:** ≥ 10 Hz ở chế độ bám, CPU < 50% một nhân.
 
+## B11. (Tùy chọn) Mặt nạ segmentation cho cảnh có vật lạ sát vật
+
+Mặc định hệ thống chỉ dùng hình học của đám mây điểm, và ở cảnh sạch như vậy là đủ (~1 mm). Nhưng khi có vật lạ **sát** vật cần dock (tường ngay phía sau, hàng chồng trên pallet, pallet nằm giữa dãy hàng), bản chỉ-hình-học có thể từ chối liên tục, hoặc tệ hơn là **báo OK với pose sai**. Số liệu nằm trong README, mục Segmentation. Mặt nạ segmentation cho biết điểm nào thuộc vật, để loại vật lạ trước khi tìm kiếm và ICP.
+
+**Cần có:**
+
+- Camera có ảnh màu, và cloud **organized** căn theo ảnh màu. Với RealSense: thêm `align_depth.enable:=true` vào lệnh ở B3 (đã có `pointcloud.ordered_pc:=true`).
+- Một node segmentation phát `sensor_msgs/Image` làm mặt nạ:
+  - pixel khác 0 = vật cần dock;
+  - cùng kích thước hoặc cùng tỉ lệ khung với cloud, stamp = stamp của ảnh màu;
+  - encoding: mono8/8UC1, mono16/16UC1, 32SC1, 32FC1, rgb8/bgr8/8UC3, rgba8/bgra8.
+- Ví dụ: YOLO-seg qua `yolo_ros`, cộng một node nhỏ vẽ mặt nạ của lớp `pallet` thành ảnh mono8. Mặt nạ phải là **từng pixel**: chỉ có bbox thì vẫn nhận sai khi có hàng hóa sát vật.
+- Mạng là khâu nặng nhất (~50–150 ms/khung trên CPU cỡ RPi). Nên chạy trên NPU (OAK-D) hoặc GPU (Jetson).
+
+**Bật** trong file tham số estimator (bản sao của `config/estimator.yaml`, truyền vào bằng `estimator_params:=...`):
+
+```yaml
+    mask_topic: /pallet_mask   # topic mặt nạ
+    mask_mode: hard            # giữ hard: mặt nạ dùng cho cả tìm kiếm và ICP
+    mask_max_age: 0.25         # lệch stamp tối đa giữa mặt nạ và cloud (s)
+```
+
+**Kiểm tra:** chạy `ros2 topic echo /pose_estimator/status` và xem trường `"mask"`:
+
+| Giá trị | Ý nghĩa |
+|---|---|
+| `used` | Đã dùng mặt nạ |
+| `too_few` | Mặt nạ có quá ít điểm trong ROI → tự quay về chỉ dùng hình học |
+| `no_mask` | Không có mặt nạ đủ mới (lệch stamp > `mask_max_age`) → chỉ dùng hình học |
+| `size_mismatch` | Mặt nạ khác tỉ lệ khung với cloud (ảnh màu chưa căn với depth) |
+| `unorganized` | Cloud không organized → không ghép được pixel |
+| `off` | Chưa bật (`mask_topic` rỗng) |
+
+Nếu mạng segmentation hỏng hoặc chậm, docking vẫn chạy bằng hình học, không phụ thuộc hoàn toàn vào mạng.
+
+**Không có ảnh màu, hoặc máy quá yếu:** nếu vật lạ chỉ nằm phía trên hoặc phía sau vật, hạ `roi.max` z xuống ngay trên vật (pallet: 0.20). Trong benchmark, cách này sửa được cảnh tường và cảnh hàng chồng. **Không** dùng khi có hàng sát hai bên vật: benchmark cho thấy khi đó nhận sai nhiều hơn. Luôn nghiệm thu lại theo B8.
+
+**Nghiệm thu:** `ros2 run camera3d_docking benchmark --seg-study --quick` chạy được trên robot; ở chỗ docking thật, phần lớn khung có `"mask": "used"` và B8 đạt.
+
 ---
 
 ## Xử lý sự cố
@@ -259,6 +298,8 @@ Các trạng thái dưới đây đọc từ topic `/pose_estimator/status`.
 | `DEGENERATE` | Mặt vật phẳng, thiếu đặc trưng ngang | Làm dock chữ V, thêm vật mốc; hoặc chấp nhận rủi ro bằng cách hạ `icp.min_observability` |
 | `AMBIGUOUS` | Hai vật giống nhau trong ROI (pallet xếp cạnh nhau) | Thu hẹp `roi`, bật `use_expected_pose` |
 | `BLIND_HOLD` | Bình thường khi robot đã rất gần vật | — |
+| Báo `OK` nhưng robot vào lệch, khi có tường/hàng hóa sát vật | Điểm của vật lạ bị khớp nhầm (điểm yếu của bản chỉ-hình-học) | Bật mặt nạ segmentation, hoặc hạ trần ROI (B11) |
+| `"mask": "no_mask"` hoặc `"size_mismatch"` | Mặt nạ đến trễ, hoặc ảnh màu chưa căn với depth | Tăng `mask_max_age`, bật `align_depth` (B11) |
 | Cảnh báo "Chưa tra được TF" | Lệch đồng hồ, chưa có odom/TF | Kiểm tra `use_sim_time`, nguồn TF `odom→base_link` |
 | Lỗi numpy / scipy `dtype size changed` | numpy 2.x trong `~/.local` | `source env.sh` (đặt `PYTHONNOUSERSITE=1`) |
 | Gazebo "Unable to find file" | Đường dẫn có dấu cách | Đã xử lý trong `sim.launch.py` (truyền tên world + `GZ_SIM_RESOURCE_PATH`) |
