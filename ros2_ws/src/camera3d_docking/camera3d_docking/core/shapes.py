@@ -5,6 +5,7 @@ Dùng cho 3 việc:
 2. Sinh đám mây điểm tổng hợp có ground-truth cho unit test và benchmark.
 3. Sinh world Gazebo (gói camera3d_docking_sim) từ CÙNG mô hình -> template và mô
    phỏng khớp nhau tuyệt đối.
+4. Biết tia nào trúng hộp nào -> gán nhãn từng điểm (mặt nạ segmentation "hoàn hảo").
 
 Quy ước frame vật: gốc ở tâm mặt trước, trên sàn (z=0), +x hướng vào trong vật, +z lên.
 """
@@ -100,18 +101,20 @@ def place_boxes(boxes, x: float, y: float, yaw: float) -> list:
 
 
 # --------------------------------------------------------------------------- ray-cast
-def raycast_boxes(origin, dirs, boxes, floor_z=None, max_range=np.inf):
+def raycast_boxes(origin, dirs, boxes, floor_z=None, max_range=np.inf, return_index: bool = False):
     """Ray-cast một gốc tới nhiều tia (N,3) đơn vị; trả (t khoảng cách, pháp tuyến).
 
     t = inf ở tia không trúng. Phương pháp slab trong hệ cục bộ của từng hộp.
+    return_index=True: trả thêm chỉ số hộp mà tia trúng (-1 = sàn, -2 = không trúng).
     """
     o = np.asarray(origin, dtype=float)
     D = np.asarray(dirs, dtype=float).reshape(-1, 3)
     n_rays = len(D)
     t_best = np.full(n_rays, np.inf)
     n_best = np.zeros((n_rays, 3))
+    i_best = np.full(n_rays, -2, dtype=np.int32)
     rows = np.arange(n_rays)
-    for b in boxes:
+    for k, b in enumerate(boxes):
         Rt = rot_z(b.yaw).T                         # world -> cục bộ
         ol = Rt @ (o - np.asarray(b.center, dtype=float))
         dl = D @ Rt.T
@@ -134,15 +137,20 @@ def raycast_boxes(origin, dirs, boxes, floor_z=None, max_range=np.inf):
         nl[rows, ax] = -np.sign(dl[rows, ax])
         t_best[hit] = t_in[hit]
         n_best[hit] = nl[hit] @ Rt                   # cục bộ -> world
+        i_best[hit] = k
     if floor_z is not None:
         with np.errstate(divide="ignore", invalid="ignore"):
             tf = (floor_z - o[2]) / D[:, 2]
         hit = (D[:, 2] < 0.0) & (tf > 1e-9) & (tf < t_best)
         t_best[hit] = tf[hit]
         n_best[hit] = (0.0, 0.0, 1.0)
+        i_best[hit] = -1
     far = t_best > max_range
     t_best[far] = np.inf
     n_best[far] = 0.0
+    i_best[far] = -2
+    if return_index:
+        return t_best, n_best, i_best
     return t_best, n_best
 
 
@@ -188,14 +196,18 @@ def camera_mount(cam_x: float, cam_height: float, cam_pitch: float, cam_y: float
 
 def render_cloud(cam: PinholeCamera, T_world_optical, boxes_world, floor_z=0.0,
                  noise: DepthNoise | None = None, rng=None, max_range: float = 6.0,
-                 min_range: float = 0.0, stride: int = 1) -> np.ndarray:
-    """Đám mây điểm organized (H', W', 3) float32 trong frame QUANG HỌC; NaN = không đo được."""
+                 min_range: float = 0.0, stride: int = 1, return_labels: bool = False):
+    """Đám mây điểm organized (H', W', 3) float32 trong frame QUANG HỌC; NaN = không đo được.
+
+    return_labels=True: trả thêm (H', W') int32 = chỉ số hộp mà tia trúng (-1 sàn, -2 không đo).
+    """
     dirs = cam.ray_dirs(stride)
     H, W = dirs.shape[:2]
     d_opt = dirs.reshape(-1, 3)
     R = np.asarray(T_world_optical)[:3, :3]
     o = np.asarray(T_world_optical)[:3, 3]
-    t, _ = raycast_boxes(o, d_opt @ R.T, boxes_world, floor_z=floor_z, max_range=np.inf)
+    t, _, hit = raycast_boxes(o, d_opt @ R.T, boxes_world, floor_z=floor_z, max_range=np.inf,
+                              return_index=True)
     P = d_opt * t[:, None]
     z = P[:, 2]
     valid = np.isfinite(t) & (z <= max_range) & (z >= min_range)
@@ -205,4 +217,7 @@ def render_cloud(cam: PinholeCamera, T_world_optical, boxes_world, floor_z=0.0,
         scale = (zv + rng.normal(0.0, 1.0, size=zv.shape) * noise.sigma(zv)) / zv
         P[valid] *= scale[:, None]
     P[~valid] = np.nan
-    return P.reshape(H, W, 3).astype(np.float32)
+    P = P.reshape(H, W, 3).astype(np.float32)
+    if return_labels:
+        return P, np.where(valid, hit, -2).reshape(H, W)
+    return P

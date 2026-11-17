@@ -14,7 +14,7 @@ from enum import Enum
 
 import numpy as np
 
-from .cloud import crop_box_mask, finite_points, fit_plane_ransac, leveling_transform, voxel_downsample
+from .cloud import crop_box_mask, fit_plane_ransac, leveling_transform, voxel_downsample
 from .geometry import T_from_xyz_yaw, make_T, pose2d, so3_exp, transform_points, wrap_angle
 from .registration import IcpParams, NearestTemplateGrid, icp_point_to_plane
 from .search import CorrelativeSearch, SearchParams
@@ -61,6 +61,8 @@ class EstimatorParams:
     floor_update_every: int = 1            # cập nhật cân bằng sàn mỗi N khung
     nn_grid: bool = True                   # lưới tra cứu tương ứng (nhanh trên CPU yếu)
     nn_resolution: float = 0.01
+    mask_mode: str = "hard"                # mặt nạ segmentation (nếu có): "hard" = tìm kiếm + ICP
+                                           # chỉ trên điểm thuộc mặt nạ; "search" = chỉ tìm kiếm
     search: SearchParams = field(default_factory=SearchParams)
     icp: IcpParams = field(default_factory=IcpParams)
     quality: QualityParams = field(default_factory=QualityParams)
@@ -77,12 +79,15 @@ class Detection:
     message: str = ""
     mode: str = ""
     floor: dict = field(default_factory=dict)
+    mask: str = "none"                     # none | used | too_few (mặt nạ quá ít điểm -> bỏ qua)
 
 
 class DockPoseEstimator:
     def __init__(self, template, params: EstimatorParams | None = None):
         self.template = template
         self.params = p = params or EstimatorParams()
+        if p.mask_mode not in ("hard", "search"):
+            raise ValueError(f"mask_mode phải là 'hard' hoặc 'search', không phải {p.mask_mode!r}")
         z_cut = p.floor_z + p.roi_min[2]          # phần template dưới mức cắt sàn không thể thấy
         p.search.z_min = max(p.search.z_min, z_cut)
         p.icp.coverage_min_z = max(p.icp.coverage_min_z, z_cut)
@@ -135,12 +140,23 @@ class DockPoseEstimator:
         self._lev_valid = True
         return True
 
-    def preprocess(self, points_base) -> np.ndarray:
-        """Cân bằng sàn + cắt ROI (xóa sàn) + voxel. Trả (M,3) float64."""
+    def _scenes(self, points_base, object_mask=None):
+        """Cân bằng sàn (dùng MỌI điểm) + cắt ROI (xóa sàn) + voxel.
+
+        Trả (S_all, S_obj) float64: S_obj chỉ gồm điểm thuộc mặt nạ (None nếu không có mặt nạ).
+        """
         p = self.params
-        P = finite_points(np.asarray(points_base, dtype=np.float32).reshape(-1, 3))
+        P = np.asarray(points_base, dtype=np.float32).reshape(-1, 3)
+        m = None
+        if object_mask is not None:
+            m = np.asarray(object_mask, dtype=bool).reshape(-1)
+            if len(m) != len(P):
+                raise ValueError(f"object_mask có {len(m)} phần tử nhưng cloud có {len(P)} điểm")
+        fin = np.isfinite(P).all(axis=1)
+        P = P[fin]
+        m = None if m is None else m[fin]
         if len(P) == 0:
-            return np.zeros((0, 3))
+            return np.zeros((0, 3)), (None if m is None else np.zeros((0, 3)))
         if p.floor_leveling and self._frame % max(1, p.floor_update_every) == 0:
             self._update_leveling(P)
         self._frame += 1
@@ -148,8 +164,20 @@ class DockPoseEstimator:
             P = transform_points(self.leveling_T, P)
         lo = (p.roi_min[0], p.roi_min[1], p.floor_z + p.roi_min[2])
         hi = (p.roi_max[0], p.roi_max[1], p.floor_z + p.roi_max[2])
-        Q, _ = voxel_downsample(P[crop_box_mask(P, lo, hi)], p.voxel_size, p.min_points_per_voxel)
+        roi = crop_box_mask(P, lo, hi)
+        S_all = self._voxel(P[roi])
+        return S_all, (None if m is None else self._voxel(P[roi & m]))
+
+    def _voxel(self, P) -> np.ndarray:
+        if len(P) == 0:
+            return np.zeros((0, 3))
+        Q, _ = voxel_downsample(P, self.params.voxel_size, self.params.min_points_per_voxel)
         return Q.astype(np.float64)
+
+    def preprocess(self, points_base, object_mask=None) -> np.ndarray:
+        """Cân bằng sàn + cắt ROI (xóa sàn) + voxel. Trả (M,3) float64 (chỉ điểm thuộc mặt nạ nếu có)."""
+        S_all, S_obj = self._scenes(points_base, object_mask)
+        return S_all if S_obj is None else S_obj
 
     # ------------------------------------------------------------------ đánh giá
     def _judge(self, r):
@@ -192,14 +220,26 @@ class DockPoseEstimator:
                                   camera_pos_base=cam)
 
     # ------------------------------------------------------------------ xử lý 1 khung
-    def process(self, points_base, camera_pos_base=None, prior_T_base_obj=None) -> Detection:
+    def process(self, points_base, camera_pos_base=None, prior_T_base_obj=None,
+                object_mask=None) -> Detection:
+        """Ước lượng pose vật trong 1 khung.
+
+        object_mask: (N,) bool cùng thứ tự với points_base (tùy chọn) — True = điểm thuộc vật theo
+        một mạng segmentation. Mặt nạ quá ít điểm -> bỏ qua, chỉ dùng hình học (mask="too_few").
+        """
         p = self.params
         tm = {}
         t0 = time.perf_counter()
-        S = self.preprocess(points_base)
+        S_all, S_obj = self._scenes(points_base, object_mask)
+        mask = "none"
+        if S_obj is not None:
+            mask = "used" if len(S_obj) >= p.min_scene_points else "too_few"
+        S_find = S_obj if mask == "used" else S_all                         # cho tìm kiếm toàn cục
+        S = S_obj if (mask == "used" and p.mask_mode == "hard") else S_all  # cho ICP + đánh giá
         self.last_scene = S                       # để node phát debug ~/roi_cloud
         tm["preprocess"] = 1000 * (time.perf_counter() - t0)
-        det = Detection(Status.NO_POINTS, n_points=len(S), timings=tm, floor=self.floor_info())
+        det = Detection(Status.NO_POINTS, n_points=len(S), timings=tm, floor=self.floor_info(),
+                        mask=mask)
 
         def done(d):
             tm["total"] = 1000 * (time.perf_counter() - t0)
@@ -227,12 +267,12 @@ class DockPoseEstimator:
             status, msg = self._judge(r)
             if status == Status.OK and not self._jump(r.T_base_obj, T0):
                 return done(Detection(Status.OK, r.T_base_obj, r.cov_xyyaw, self._quality_dict(r),
-                                      tm, len(S), "", "track", self.floor_info()))
+                                      tm, len(S), "", "track", self.floor_info(), mask))
             # bám thất bại / nhảy cóc -> tìm kiếm lại toàn cục ngay trong khung này
 
         # --- 2) chế độ tìm kiếm toàn cục
         t1 = time.perf_counter()
-        hyps = self.searcher.search(S, p.roi_min[:2], p.roi_max[:2])
+        hyps = self.searcher.search(S_find, p.roi_min[:2], p.roi_max[:2])
         tm["search"] = 1000 * (time.perf_counter() - t1)
         det.mode = "search"
         if not hyps:
@@ -245,7 +285,7 @@ class DockPoseEstimator:
         best = results[0]
         status, msg = self._judge(best)
         det = Detection(status, best.T_base_obj, best.cov_xyyaw, self._quality_dict(best), tm,
-                        len(S), msg, "search", self.floor_info())
+                        len(S), msg, "search", self.floor_info(), mask)
         if status != Status.OK:
             return done(det)
         q = p.quality
