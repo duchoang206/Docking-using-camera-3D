@@ -1,0 +1,50 @@
+# Nav2 Docking (opennav_docking, ROS 2 Jazzy) dùng pose từ camera3d_docking.
+# pose_estimator phát `detected_dock_pose` (frame odom) = frame vật: gốc tâm mặt trước,
+# +x hướng vào trong vật -> không cần xoay; external_detection_translation_x = điểm dừng.
+docking_server:
+  ros__parameters:
+    controller_frequency: 50.0
+    initial_perception_timeout: 5.0
+    wait_charge_timeout: 5.0
+    dock_approach_timeout: 60.0
+    undock_linear_tolerance: 0.05
+    undock_angular_tolerance: 0.1
+    max_retries: 2
+    base_frame: base_link
+    fixed_frame: odom
+    dock_backwards: false            # true: lùi vào (xe nâng càng phía sau)
+    dock_prestaging_tolerance: 0.5
+
+    dock_plugins: ["pallet_dock"]
+    pallet_dock:
+      plugin: "opennav_docking::SimpleNonChargingDock"
+      use_external_detection_pose: true
+      external_detection_timeout: 1.0
+      external_detection_translation_x: -0.35   # base_link dừng cách mặt vật 0.35 m
+      external_detection_translation_y: 0.0
+      external_detection_rotation_roll: 0.0
+      external_detection_rotation_pitch: 0.0
+      external_detection_rotation_yaw: 0.0
+      filter_coef: 0.0                          # đã lọc Kalman ở pose_estimator
+      docking_threshold: 0.02
+      staging_x_offset: -1.6                    # staging cách mặt vật 1.6 m = 1.25 m trước điểm dừng
+                                                # (E2E Gazebo: lệch -20°/-0.3 m -> yaw cuối 0.93° với
+                                                #  quãng 1.25 m, nhưng 1.77° với quãng 0.95 m)
+      staging_yaw_offset: 0.0
+      use_stall_detection: false
+
+    # Vị trí gần đúng của các dock trên bản đồ (pose_estimator sẽ tinh chỉnh khi tới gần)
+    docks: ["pallet_1"]
+    pallet_1:
+      type: "pallet_dock"
+      frame: map
+      pose: [2.0, 0.0, 0.0]          # [x, y, yaw] của mặt trước vật trong map
+
+    controller:
+      k_phi: 3.0
+      k_delta: 2.0
+      v_linear_min: 0.05
+      v_linear_max: 0.15
+      v_angular_max: 0.6
+      slowdown_radius: 0.25
+      use_collision_detection: false

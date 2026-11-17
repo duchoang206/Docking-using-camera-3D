@@ -1,0 +1,32 @@
+# Tham số node docking_controller (dùng khi robot KHÔNG chạy Nav2).
+docking_controller:
+  ros__parameters:
+    base_frame: base_link
+    control_rate_hz: 20.0
+    use_stamped_cmd_vel: false     # true nếu đế robot nhận TwistStamped
+    # Đích cuối của base_link so với frame vật (gốc = tâm mặt trước, +x vào trong vật):
+    dock_offset_x: -0.35           # âm: dừng trước mặt vật; dương: càng nâng đi vào pallet
+    dock_offset_y: 0.0
+    dock_offset_yaw_deg: 0.0
+    backward: false                # true: lùi vào (xe nâng có càng phía sau, camera phía sau)
+    law:                           # luật Park–Kuipers (giống nav2_graceful_controller)
+      k_phi: 3.0
+      k_delta: 2.0
+      beta: 0.4
+      lambda: 2.0
+      v_max: 0.2
+      v_min: 0.02
+      w_max: 0.6
+      slowdown_radius: 0.25
+    fsm:
+      goal_tol_x: 0.01             # dừng khi còn < 1 cm dọc trục dock
+      blind_zone: 0.6              # còn < 0.6 m: đi theo pose giữ (camera có thể không thấy vật)
+      blind_speed: 0.08
+      detection_timeout: 5.0
+      lost_timeout: 1.0
+      approach_timeout: 60.0
+      max_retries: 2
+      retreat_distance: 0.5
+      retreat_speed: 0.1
+      acc_v: 0.5
+      acc_w: 1.5
