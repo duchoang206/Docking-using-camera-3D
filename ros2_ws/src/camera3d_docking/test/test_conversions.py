@@ -52,3 +52,42 @@ def test_pc2_xyzrgb_padding():
 def test_pose_roundtrip():
     T = g.T_from_xyz_rpy(1.0, -2.0, 0.5, 0.1, 0.2, -1.0)
     assert np.allclose(cv.pose_to_T(cv.T_to_pose(T)), T, atol=1e-9)
+
+
+def test_pc2_keep_nan_keeps_grid_order():
+    """keep_nan=True: giữ đủ lưới (kể cả NaN) để ghép từng điểm với pixel của mặt nạ 2D."""
+    grid = np.arange(4 * 6 * 3, dtype=np.float32).reshape(4, 6, 3)
+    grid[1, 2] = np.nan
+    msg = cv.xyz_to_pointcloud2(grid, "cam", Time(), organized=True)
+    full = cv.pointcloud2_to_xyz(msg, keep_nan=True)
+    assert full.shape == (24, 3) and np.isnan(full[1 * 6 + 2]).all()
+    assert np.array_equal(cv.pointcloud2_to_xyz(msg, stride=2, keep_nan=True),
+                          grid[::2, ::2].reshape(-1, 3))
+
+
+def _image(arr, encoding, pad=0):
+    from sensor_msgs.msg import Image
+
+    a = np.ascontiguousarray(arr)
+    h, w = a.shape[:2]
+    raw = np.hstack([a.reshape(h, -1).view(np.uint8), np.zeros((h, pad), np.uint8)])
+    return Image(height=h, width=w, encoding=encoding, is_bigendian=0, step=raw.shape[1],
+                 data=raw.tobytes())
+
+
+def test_image_to_mask_common_encodings():
+    m8 = np.zeros((3, 5), np.uint8)
+    m8[1, 2] = 255
+    assert np.array_equal(cv.image_to_mask(_image(m8, "mono8", pad=3)), m8 > 0)   # hàng có đệm
+    m16 = np.zeros((3, 5), np.uint16)
+    m16[2, 4] = 7                                                          # mặt nạ kiểu nhãn
+    assert np.array_equal(cv.image_to_mask(_image(m16, "16UC1")), m16 > 0)
+    rgb = np.zeros((3, 5, 3), np.uint8)
+    rgb[0, 0, 1] = 9
+    out = cv.image_to_mask(_image(rgb, "rgb8"))
+    assert out.shape == (3, 5) and out[0, 0] and out.sum() == 1
+    f = np.zeros((3, 5), np.float32)
+    f[0, 1], f[0, 2] = 1.0, np.nan                                         # NaN = nền
+    assert np.array_equal(cv.image_to_mask(_image(f, "32FC1")), np.isfinite(f) & (f != 0))
+    with pytest.raises(ValueError):
+        cv.image_to_mask(_image(np.zeros((2, 2), np.float64), "64FC1"))

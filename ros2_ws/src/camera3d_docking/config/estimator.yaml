@@ -12,6 +12,10 @@ pose_estimator:
     start_enabled: true            # false: chờ ~/enable (tiết kiệm CPU khi không docking)
     use_expected_pose: false       # true: dùng expected_pose làm pose khởi tạo
     expected_pose: [1.2, 0.0, 0.0] # [x, y, yaw_deg] của vật trong base_frame
+    # Mặt nạ segmentation (tùy chọn, mặc định TẮT — xem HUONG_DAN_TRIEN_KHAI.md mục B11)
+    mask_topic: ""                 # sensor_msgs/Image căn khớp với cloud (khác 0 = vật); "" = tắt
+    mask_mode: hard                # hard: tìm kiếm + ICP chỉ trên điểm thuộc mặt nạ | search: chỉ tìm kiếm
+    mask_max_age: 0.25             # lệch stamp tối đa giữa mặt nạ và cloud (s)
     roi:
       min: [0.25, -1.5, 0.03]      # [x, y, z trên sàn] — z min cũng là ngưỡng xóa sàn
       max: [3.5, 1.5, 2.0]

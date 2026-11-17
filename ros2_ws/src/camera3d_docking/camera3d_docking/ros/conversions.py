@@ -11,12 +11,18 @@ from ..core.geometry import R_from_quat, make_T, quat_from_R
 _DT = {PointField.INT8: "i1", PointField.UINT8: "u1", PointField.INT16: "i2",
        PointField.UINT16: "u2", PointField.INT32: "i4", PointField.UINT32: "u4",
        PointField.FLOAT32: "f4", PointField.FLOAT64: "f8"}
+# encoding ảnh mặt nạ -> (kiểu số, số kênh)
+_IMG = {"mono8": ("u1", 1), "8UC1": ("u1", 1), "mono16": ("u2", 1), "16UC1": ("u2", 1),
+        "32SC1": ("i4", 1), "32FC1": ("f4", 1), "rgb8": ("u1", 3), "bgr8": ("u1", 3),
+        "8UC3": ("u1", 3), "rgba8": ("u1", 4), "bgra8": ("u1", 4)}
 
 
-def pointcloud2_to_xyz(msg: PointCloud2, stride: int = 1) -> np.ndarray:
+def pointcloud2_to_xyz(msg: PointCloud2, stride: int = 1, keep_nan: bool = False) -> np.ndarray:
     """PointCloud2 bất kỳ (organized/unorganized, có padding/rgb) -> (N,3) float32, bỏ NaN.
 
     stride > 1: lấy mẫu thưa theo hàng/cột (cloud organized) TRƯỚC khi chuyển đổi -> rất rẻ.
+    keep_nan=True: giữ mọi điểm (kể cả NaN) theo thứ tự hàng của lưới đã lấy thưa — để ghép
+    từng điểm với pixel của mặt nạ segmentation.
     """
     fields = {f.name: f for f in msg.fields}
     if not all(k in fields for k in ("x", "y", "z")):
@@ -40,7 +46,7 @@ def pointcloud2_to_xyz(msg: PointCloud2, stride: int = 1) -> np.ndarray:
     xyz[..., 1] = arr["y"]
     xyz[..., 2] = arr["z"]
     xyz = xyz.reshape(-1, 3)
-    return xyz[np.isfinite(xyz).all(axis=1)]
+    return xyz if keep_nan else xyz[np.isfinite(xyz).all(axis=1)]
 
 
 def xyz_to_pointcloud2(points, frame_id: str, stamp, organized: bool = False) -> PointCloud2:
@@ -59,6 +65,28 @@ def xyz_to_pointcloud2(points, frame_id: str, stamp, organized: bool = False) ->
     msg.is_dense = bool(np.isfinite(data).all())
     msg.data = data.tobytes()
     return msg
+
+
+def image_to_mask(msg) -> np.ndarray:
+    """sensor_msgs/Image (mặt nạ segmentation) -> (H, W) bool; pixel khác 0 = thuộc vật.
+
+    Hỗ trợ mono8/8UC1, mono16/16UC1, 32SC1, 32FC1 (NaN = nền), rgb8/bgr8/8UC3, rgba8/bgra8
+    (kênh nào khác 0 cũng tính). Hàng ảnh có đệm (step > width * byte/pixel) được cắt bỏ.
+    """
+    if msg.encoding not in _IMG:
+        raise ValueError(f"Encoding mặt nạ chưa hỗ trợ: {msg.encoding!r}")
+    fmt, ch = _IMG[msg.encoding]
+    dt = np.dtype(fmt).newbyteorder(">" if msg.is_bigendian else "<")
+    H, W, step = int(msg.height), int(msg.width), int(msg.step)
+    row = W * ch * dt.itemsize
+    buf = np.frombuffer(bytes(msg.data), dtype=np.uint8)
+    if step < row or len(buf) < H * step:
+        raise ValueError(f"Ảnh mặt nạ hỏng: {W}x{H}, step={step}, {len(buf)} byte")
+    arr = np.ascontiguousarray(buf[:H * step].reshape(H, step)[:, :row]).view(dt).reshape(H, W, ch)
+    out = arr != 0
+    if dt.kind == "f":
+        out &= np.isfinite(arr)
+    return out.any(axis=-1)
 
 
 def start_tf_listener(buffer):

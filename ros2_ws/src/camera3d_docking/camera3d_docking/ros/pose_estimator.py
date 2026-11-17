@@ -8,6 +8,7 @@ Lớp vỏ mỏng quanh core.estimator.DockPoseEstimator + core.kalman.StaticPos
 """
 from __future__ import annotations
 
+import collections
 import json
 import math
 import os
@@ -20,7 +21,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import Image, PointCloud2
 from std_msgs.msg import String
 from std_srvs.srv import SetBool, Trigger
 from tf2_ros import Buffer, TransformException
@@ -30,15 +31,17 @@ from ..core.geometry import T_from_xyz_yaw, inv_T, pose2d, transform_points, yaw
 from ..core.kalman import StaticPoseKF
 from ..core.registration import IcpParams
 from ..core.search import SearchParams
+from ..core.segmentation import mask_to_grid
 from ..core.template import Template
-from .conversions import (T_to_pose, pointcloud2_to_xyz, start_tf_listener, stop_tf_listener,
-                          transform_to_T, xyz_to_pointcloud2)
+from .conversions import (T_to_pose, image_to_mask, pointcloud2_to_xyz, start_tf_listener,
+                          stop_tf_listener, transform_to_T, xyz_to_pointcloud2)
 
 DEFAULTS = {
     "base_frame": "base_link", "fixed_frame": "odom", "template_path": "euro_pallet.npz",
     "cloud_stride": 2, "max_rate_hz": 10.0, "publish_rate_hz": 10.0, "hold_timeout": 2.0,
     "blind_zone_distance": 0.6, "start_enabled": True, "use_expected_pose": False,
     "expected_pose": [1.2, 0.0, 0.0],
+    "mask_topic": "", "mask_mode": "hard", "mask_max_age": 0.25,
     "roi.min": [0.25, -1.5, 0.03], "roi.max": [3.5, 1.5, 2.0], "floor_z": 0.0,
     "floor_leveling": True, "voxel_size": 0.02, "min_points_per_voxel": 1, "nn_grid": True,
     "search.grid_res": 0.03, "search.yaw_range_deg": 45.0, "search.yaw_step_deg": 3.0,
@@ -80,6 +83,7 @@ class PoseEstimatorNode(Node):
             roi_min=tuple(P["roi.min"]), roi_max=tuple(P["roi.max"]), floor_z=P["floor_z"],
             floor_leveling=P["floor_leveling"], voxel_size=P["voxel_size"],
             min_points_per_voxel=P["min_points_per_voxel"], nn_grid=P["nn_grid"],
+            mask_mode=P["mask_mode"],
             search=SearchParams(grid_res=P["search.grid_res"], yaw_range_deg=P["search.yaw_range_deg"],
                                 yaw_step_deg=P["search.yaw_step_deg"], n_bands=P["search.n_bands"],
                                 free_weight=P["search.free_weight"]),
@@ -107,6 +111,12 @@ class PoseEstimatorNode(Node):
         qos = QoSProfile(depth=1, history=HistoryPolicy.KEEP_LAST,
                          reliability=ReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(PointCloud2, "points", self._on_cloud, qos)
+        self._masks = None                        # mặt nạ segmentation gần đây: (stamp ns, (H,W) bool)
+        if P["mask_topic"]:
+            self._masks = collections.deque(maxlen=8)
+            self.create_subscription(Image, P["mask_topic"], self._on_mask,
+                                     QoSProfile(depth=5, history=HistoryPolicy.KEEP_LAST,
+                                                reliability=ReliabilityPolicy.BEST_EFFORT))
         self.pub_pose = self.create_publisher(PoseStamped, "detected_dock_pose", 10)
         self.pub_raw = self.create_publisher(PoseWithCovarianceStamped, "~/pose_raw", 10)
         self.pub_tpl = self.create_publisher(PointCloud2, "~/aligned_template", 1)
@@ -117,7 +127,8 @@ class PoseEstimatorNode(Node):
         self.create_timer(1.0 / P["publish_rate_hz"], self._on_timer)
         self.get_logger().info(
             f"Template '{self.template.name}' ({len(self.template.points)} điểm) sẵn sàng sau "
-            f"{time.perf_counter() - t0:.1f} s — chờ PointCloud2 trên 'points'")
+            f"{time.perf_counter() - t0:.1f} s — chờ PointCloud2 trên 'points'"
+            + (f", mặt nạ segmentation trên '{P['mask_topic']}'" if P["mask_topic"] else ""))
 
     def destroy_node(self):
         stop_tf_listener(self.tf_listener)  # dừng luồng TF trước khi hủy node
@@ -184,8 +195,14 @@ class PoseEstimatorNode(Node):
         elif self.P["use_expected_pose"]:
             ex, ey, eyaw = self.P["expected_pose"]
             prior = T_from_xyz_yaw(ex, ey, 0.0, math.radians(eyaw))
-        P = transform_points(T_bc, pointcloud2_to_xyz(msg, int(self.P["cloud_stride"])))
-        det = self.estimator.process(P, T_bc[:3, 3], prior)
+        stride = max(1, int(self.P["cloud_stride"]))
+        object_mask, mask_state = None, "off"
+        if self._masks is not None:
+            object_mask, mask_state = self._mask_for_cloud(msg, stride)
+        P = transform_points(T_bc, pointcloud2_to_xyz(msg, stride, keep_nan=object_mask is not None))
+        det = self.estimator.process(P, T_bc[:3, 3], prior, object_mask=object_mask)
+        if object_mask is not None:
+            mask_state = det.mask                 # used | too_few
         accepted = False
         if det.status == Status.OK:
             T_odom_obj = T_ob @ det.T_base_obj
@@ -203,7 +220,32 @@ class PoseEstimatorNode(Node):
                       "accepted": accepted, "n_points": det.n_points,
                       "quality": {k: round(float(v), 4) for k, v in det.quality.items()},
                       "timings_ms": {k: round(v, 1) for k, v in det.timings.items()},
-                      "floor": det.floor})
+                      "floor": det.floor, "mask": mask_state})
+
+    # ------------------------------------------------------------------ mặt nạ segmentation
+    def _on_mask(self, msg: Image):
+        try:
+            m = image_to_mask(msg)
+        except ValueError as ex:
+            self.get_logger().warn(f"Bỏ mặt nạ: {ex}", throttle_duration_sec=5.0)
+            return
+        self._masks.append((Time.from_msg(msg.header.stamp).nanoseconds, m))
+
+    def _mask_for_cloud(self, msg: PointCloud2, stride: int):
+        """Mặt nạ có stamp gần cloud nhất, đưa về lưới cloud (thứ tự như pointcloud2_to_xyz)."""
+        H, W = int(msg.height), int(msg.width)
+        if H <= 1:
+            return None, "unorganized"            # cloud không organized: không ghép được pixel
+        t = Time.from_msg(msg.header.stamp).nanoseconds
+        best = min(self._masks, key=lambda it: abs(it[0] - t), default=None)
+        if best is None or abs(best[0] - t) > self.P["mask_max_age"] * 1e9:
+            return None, "no_mask"
+        try:
+            grid = mask_to_grid(best[1], H, W)
+        except ValueError as ex:
+            self.get_logger().warn(f"Mặt nạ không khớp cloud: {ex}", throttle_duration_sec=5.0)
+            return None, "size_mismatch"
+        return grid[::stride, ::stride].ravel(), "ok"
 
     def _publish_debug(self, det, stamp_msg, t_now):
         if det.T_base_obj is None:

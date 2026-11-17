@@ -1,4 +1,5 @@
 """Task 11 — node pose_estimator (tích hợp rclpy trong tiến trình; cần ROS 2)"""
+import json
 import math
 import time
 
@@ -9,7 +10,8 @@ rclpy = pytest.importorskip("rclpy")
 from geometry_msgs.msg import PoseStamped, TransformStamped  # noqa: E402
 from rclpy.executors import SingleThreadedExecutor  # noqa: E402
 from rclpy.parameter import Parameter  # noqa: E402
-from sensor_msgs.msg import PointCloud2  # noqa: E402
+from sensor_msgs.msg import Image, PointCloud2  # noqa: E402
+from std_msgs.msg import String  # noqa: E402
 from tf2_ros import StaticTransformBroadcaster  # noqa: E402
 
 from camera3d_docking.core import geometry as g  # noqa: E402
@@ -53,6 +55,16 @@ def _tf(parent, child, T, stamp):
     return m
 
 
+def _mask_msg(mask_u8, stamp):
+    """Mặt nạ segmentation dạng sensor_msgs/Image mono8 (khác 0 = pallet)."""
+    m = Image()
+    m.header.frame_id, m.header.stamp = "camera_optical", stamp
+    m.height, m.width = mask_u8.shape
+    m.encoding, m.is_bigendian, m.step = "mono8", 0, mask_u8.shape[1]
+    m.data = np.ascontiguousarray(mask_u8, dtype=np.uint8).tobytes()
+    return m
+
+
 class Harness:
     def __init__(self, tpl_path, scene, **params):
         over = [Parameter("template_path", value=tpl_path), Parameter("max_rate_hz", value=30.0)]
@@ -68,6 +80,11 @@ class Harness:
         self.ex.add_node(self.helper)
         self.cloud = scene["organized_optical"]
         self.T_base_opt = scene["T_base_optical"]
+        self.mask_pub = None              # đặt publisher + mặt nạ uint8 để phát cùng stamp với cloud
+        self.mask = None
+        self.status = []
+        self.helper.create_subscription(String, "/pose_estimator/status",
+                                        lambda m: self.status.append(json.loads(m.data)), 10)
 
     def send_tf(self):
         now = self.helper.get_clock().now().to_msg()
@@ -80,6 +97,8 @@ class Harness:
         while time.monotonic() < end:
             if publish and time.monotonic() >= nxt:
                 stamp = self.helper.get_clock().now().to_msg()
+                if self.mask_pub is not None:
+                    self.mask_pub.publish(_mask_msg(self.mask, stamp))
                 self.pub.publish(cv.xyz_to_pointcloud2(self.cloud, "camera_optical", stamp,
                                                        organized=True))
                 nxt = time.monotonic() + period
@@ -141,5 +160,30 @@ def test_node_holds_pose_when_cloud_stops(tpl_path, scene):
         n1 = len(h.poses)
         h.spin(0.6, publish=False)
         assert len(h.poses) == n1
+    finally:
+        h.close()
+
+
+def test_node_uses_segmentation_mask(tpl_path, scene):
+    h = Harness(tpl_path, scene, mask_topic="pallet_mask")
+    try:
+        h.mask_pub = h.helper.create_publisher(Image, "pallet_mask", 10)
+        h.mask = (scene["labels"] == 0).astype(np.uint8) * 255
+        h.send_tf()
+        assert h.spin(15.0, until=lambda: len(h.poses) > 0 and any(
+            st.get("mask") == "used" and st.get("accepted") for st in h.status)), h.status[-3:]
+        x, y, _ = g.pose2d(cv.pose_to_T(h.poses[-1].pose))
+        assert math.hypot(x - TRUTH[0], y - TRUTH[1]) < 0.02
+    finally:
+        h.close()
+
+
+def test_node_without_mask_messages_falls_back_to_geometry(tpl_path, scene):
+    h = Harness(tpl_path, scene, mask_topic="pallet_mask")    # bật mặt nạ nhưng không ai phát
+    try:
+        h.send_tf()
+        assert h.spin(15.0, until=lambda: len(h.poses) > 0 and any("mask" in st for st in h.status))
+        masks = {st["mask"] for st in h.status if "mask" in st}
+        assert masks == {"no_mask"}, masks
     finally:
         h.close()
