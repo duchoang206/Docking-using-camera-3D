@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Sổ tay Docking Camera 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Bố cục: sổ tay kỹ thuật — rail mục lục bên trái + cột nội dung ~880px; hình chiếm trọn cột, bấm để phóng to.
+   Màu: hổ phách = template / đích (khớp màu trong các hình), xanh = dữ liệu cảm biến. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --ink:#1B2430; --muted:#5E6B78; --line:#DCE2E8; --line-strong:#B9C3CD;
+  --accent:#C47F0C; --accent-ink:#8F5A05; --accent-tint:#FBF1DE;
+  --cloud:#3B7DB0; --cloud-tint:#E6EFF7;
+  --ok:#2F8F5B; --ok-tint:#E3F2EA; --bad:#C2462B; --bad-tint:#F9E6E1;
+  --code-bg:#EDF0F3; --code-ink:#1B2430; --kbd-bg:#FFFFFF;
+  --term-bg:#151B21; --term-ink:#D7DEE5; --term-dim:#8796A4; --term-ok:#6FD39B; --term-warn:#F0B347; --term-bad:#F07A5F; --term-cy:#7FC8F0;
+  --font-text:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1419; --surface:#161D24; --ink:#E4E9EE; --muted:#95A3B1; --line:#27313B; --line-strong:#3A4652;
+    --accent:#F0B347; --accent-ink:#F0B347; --accent-tint:#33291A;
+    --cloud:#6CB4E4; --cloud-tint:#172C3A;
+    --ok:#5CCB8A; --ok-tint:#15302A; --bad:#F07A5F; --bad-tint:#3A211C;
+    --code-bg:#1C242C; --code-ink:#E4E9EE; --kbd-bg:#222B34;
+    --term-bg:#0B0F13; --term-ink:#D7DEE5; --term-dim:#7E8D9B;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1419; --surface:#161D24; --ink:#E4E9EE; --muted:#95A3B1; --line:#27313B; --line-strong:#3A4652;
+  --accent:#F0B347; --accent-ink:#F0B347; --accent-tint:#33291A;
+  --cloud:#6CB4E4; --cloud-tint:#172C3A;
+  --ok:#5CCB8A; --ok-tint:#15302A; --bad:#F07A5F; --bad-tint:#3A211C;
+  --code-bg:#1C242C; --code-ink:#E4E9EE; --kbd-bg:#222B34;
+  --term-bg:#0B0F13; --term-ink:#D7DEE5; --term-dim:#7E8D9B;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-text);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* ---------- đầu trang */
+.top{padding-block:44px 8px}
+.eyebrow{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 10px}
+h1{font-size:clamp(30px, 4.6vw, 44px);line-height:1.12;margin:0 0 14px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lede{font-size:18px;max-width:62ch;color:var(--ink);margin:0 0 22px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:0 0 28px}
+.facts div{background:var(--surface);padding:12px 16px;min-width:0}
+.facts dt{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.facts dd{margin:2px 0 0;font-size:15px;font-weight:500}
+.facts code{font-size:13.5px}
+
+/* ---------- bố cục 2 cột */
+.layout{display:grid;grid-template-columns:240px minmax(0, 1fr);gap:48px;align-items:start;padding-block:8px 80px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);max-height:calc(100vh - 32px);overflow:auto;font-size:14px;line-height:1.45;padding-bottom:16px}
+.toc summary{font-weight:700;cursor:pointer;padding:6px 0;list-style:none}
+.toc summary::-webkit-details-marker{display:none}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc > details > ol > li{margin:14px 0 4px}
+.toc a{color:var(--muted);text-decoration:none;display:block;padding:3px 0 3px 10px;border-left:2px solid transparent}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--accent);font-weight:500}
+.toc .part > a{color:var(--ink);font-weight:600;padding-left:0;border-left:0}
+.toc ol ol a{font-size:13.5px}
+main{min-width:0;max-width:880px}
+@media (max-width: 1020px){
+  .layout{grid-template-columns:minmax(0, 1fr);gap:8px}
+  nav.toc{position:static;max-height:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px 8px}
+}
+
+/* ---------- chữ */
+.part-head{margin:56px 0 6px;padding-top:20px;border-top:2px solid var(--ink)}
+.part-head .eyebrow{margin-bottom:4px;color:var(--accent-ink)}
+section:first-child .part-head{margin-top:8px}
+h2{font-size:clamp(26px, 3.4vw, 32px);line-height:1.2;margin:0 0 10px;letter-spacing:-.01em;text-wrap:balance}
+h3{font-size:22px;line-height:1.3;margin:48px 0 10px;text-wrap:balance}
+h3 .num{color:var(--accent-ink);font-variant-numeric:tabular-nums;margin-right:8px}
+h4{font-size:17px;margin:28px 0 6px}
+p{margin:0 0 14px;max-width:72ch}
+ul,ol{max-width:72ch;padding-left:22px;margin:0 0 14px}
+li{margin:4px 0}
+a{color:var(--cloud)}
+strong{font-weight:600}
+code,kbd{font-family:var(--font-mono);font-size:.88em}
+:not(pre) > code{background:var(--code-bg);padding:1px 5px;border-radius:4px;word-break:break-word}
+kbd{background:var(--kbd-bg);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 6px;font-size:.82em}
+.muted{color:var(--muted)}
+.intro{font-size:17px;color:var(--ink)}
+
+/* ---------- hình */
+body{counter-reset:fig}
+.fig{margin:22px 0 26px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;counter-increment:fig}
+.fig figcaption{font-size:14.5px;line-height:1.6;color:var(--muted);margin-top:10px;max-width:none}
+.fig figcaption::before{content:"Hình " counter(fig) ". ";color:var(--ink);font-weight:600}
+.fig figcaption b{color:var(--ink);font-weight:600}
+.zoom{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;border-radius:6px}
+.zoom:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.fig img,.fig video{display:block;width:100%;height:auto;border-radius:6px}
+.th-dark{display:none!important}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .th-light{display:none!important}
+  :root:not([data-theme="light"]) .th-dark{display:block!important}
+}
+:root[data-theme="dark"] .th-light{display:none!important}
+:root[data-theme="dark"] .th-dark{display:block!important}
+.svgbox{overflow-x:auto}
+.svgbox svg{display:block;width:100%;height:auto;min-width:620px}
+.shot img{border:1px solid var(--line)}
+
+/* ---------- sơ đồ SVG */
+.dg{color:var(--ink);font-family:var(--font-text);font-size:13px}
+.dg text{fill:currentColor}
+.dg .b{font-weight:600}
+.dg .s{font-size:11.5px;fill:var(--muted)}
+.dg .m{font-family:var(--font-mono);font-size:12px}
+.dg .ms{font-family:var(--font-mono);font-size:11px;fill:var(--muted)}
+.dg .h{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;fill:var(--muted)}
+.dg .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.2}
+.dg .box-a{fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.3}
+.dg .box-c{fill:var(--cloud-tint);stroke:var(--cloud);stroke-width:1.3}
+.dg .box-ok{fill:var(--ok-tint);stroke:var(--ok);stroke-width:1.3}
+.dg .box-bad{fill:var(--bad-tint);stroke:var(--bad);stroke-width:1.3}
+.dg .lane{fill:none;stroke:var(--line-strong);stroke-width:1.2;stroke-dasharray:2 4}
+.dg .ln{fill:none;stroke:currentColor;stroke-width:1.4}
+.dg .dash{stroke-dasharray:6 5}
+.dg .ln-a{fill:none;stroke:var(--accent);stroke-width:2}
+.dg .ln-c{fill:none;stroke:var(--cloud);stroke-width:1.6}
+.dg .ln-bad{fill:none;stroke:var(--bad);stroke-width:1.4}
+.dg .ln-ok{fill:none;stroke:var(--ok);stroke-width:1.6}
+.dg .ln-faint{fill:none;stroke:var(--line-strong);stroke-width:1.2}
+.dg .fa{fill:var(--accent)}
+.dg .fc{fill:var(--cloud)}
+.dg .fok{fill:var(--ok)}
+.dg .fbad{fill:var(--bad)}
+.dg .fmuted{fill:var(--muted)}
+.dg .ta{fill:var(--accent-ink)}
+.dg .tc{fill:var(--cloud)}
+.dg .tok{fill:var(--ok)}
+.dg .tbad{fill:var(--bad)}
+.dg .robot{fill:var(--surface);stroke:currentColor;stroke-width:1.4}
+.dg .ghost{fill:none;stroke:var(--accent);stroke-width:1.4;stroke-dasharray:4 3}
+.dg .zone{fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 4}
+.dg .fov{fill:var(--cloud);fill-opacity:.13;stroke:var(--cloud);stroke-opacity:.5;stroke-width:1}
+.dg .pallet{fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.4}
+.dg .floor{stroke:var(--muted);stroke-width:1.4}
+
+/* ---------- khối ghi chú, bảng, mã lệnh */
+.note{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin:18px 0 22px}
+.note > :last-child{margin-bottom:0}
+.note .lbl{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--accent-ink);margin-bottom:4px}
+.note.warn .lbl{color:var(--bad)}
+.note.tip .lbl{color:var(--ok)}
+.tbl{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface)}
+tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)} .pill.warn{color:var(--accent-ink)} .pill.info{color:var(--cloud)}
+.code{position:relative;margin:12px 0 20px}
+.code pre{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:14px 16px;padding-right:96px;overflow-x:auto;font-family:var(--font-mono);font-size:13.5px;line-height:1.6;tab-size:2}
+.code pre .c{color:var(--muted)}
+.copy{position:absolute;top:8px;right:8px;font:600 12px var(--font-text);color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--ink)}
+.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.term{background:var(--term-bg);color:var(--term-ink);border-radius:8px;overflow:hidden;font-family:var(--font-mono);font-size:12.8px;line-height:1.55}
+.term .bar{display:flex;align-items:center;gap:6px;padding:7px 12px;background:rgba(255,255,255,.06);color:var(--term-dim);font-size:11.5px}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:#5A6672;display:inline-block}
+.term .bar span{margin-left:8px}
+.term pre{margin:0;padding:12px 16px 14px;overflow-x:auto;color:inherit;font:inherit;white-space:pre}
+.term .p{color:var(--term-cy)} .term .d{color:var(--term-dim)} .term .g{color:var(--term-ok)} .term .y{color:var(--term-warn)} .term .r{color:var(--term-bad)}
+.steps{counter-reset:st;list-style:none;padding-left:0;max-width:none}
+.steps > li{counter-increment:st;position:relative;padding-left:42px;margin:0 0 18px}
+.steps > li::before{content:counter(st);position:absolute;left:0;top:1px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;display:grid;place-items:center}
+.cols{display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin:16px 0 22px}
+.cols > div{min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.card h4{margin:0 0 6px}
+.card p:last-child{margin-bottom:0}
+.small{font-size:14px}
+.end{margin-top:64px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+
+/* ---------- phóng to hình */
+#lb{position:fixed;inset:0;z-index:50;background:rgba(8,12,16,.86);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 48px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px))}
+#lb img{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:8px;background:var(--surface)}
+#lb button{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 10px);right:max(14px, env(safe-area-inset-right, 0px));font:600 14px var(--font-text);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">Dự án “Docking using Camera 3D” · ROS 2 Jazzy · gói <code>camera3d_docking</code></p>
+  <h1>Sổ tay Docking Camera 3D</h1>
+  <p class="lede">Robot được dẫn tới trước một vật cố định như pallet, rack hay trạm sạc. Camera 3D đo vị trí của vật so với robot, rồi bộ điều khiển đưa robot vào đúng chỗ với sai số vài milimét. Sổ tay này giải thích từng bước bằng hình, chỉ cách chạy chương trình và cách xem mô phỏng.</p>
+  <dl class="facts">
+    <div><dt>Đầu vào</dt><dd><code>PointCloud2</code> từ camera 3D bất kỳ</dd></div>
+    <div><dt>Đầu ra</dt><dd><code>detected_dock_pose</code> trong <code>odom</code></dd></div>
+    <div><dt>Độ chính xác (benchmark)</dt><dd>trung vị 1,1 mm · 0,04°</dd></div>
+    <div><dt>Docking trong Gazebo</dt><dd>4/4 DOCKED · ngang ≤ 0,3 cm</dd></div>
+  </dl>
+  <figure class="fig" id="fig-two-phase">
+    <div class="svgbox">
+    <svg class="dg" viewBox="0 0 960 300" role="img" aria-label="Hai pha docking: pha 1 Nav2 đưa robot tới staging pose với sai số 0,1 đến 0,5 m; pha 2 camera 3D đo pose của pallet và bộ điều khiển đưa robot vào đích với sai số dưới 2 cm.">
+      <defs>
+        <marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+        <marker id="ah1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+      </defs>
+      <path d="M90 236 C 250 236, 330 150, 592 150" class="ln dash" marker-end="url(#ah1)"/>
+      <g transform="translate(64 236)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="robot"/><path d="M8 -8 L19 0 L8 8" class="ln"/><circle cx="17" cy="0" r="2.6" class="fc"/></g>
+      <ellipse cx="620" cy="151" rx="48" ry="36" class="zone"/>
+      <path d="M641 152 L770 86 L770 216 Z" class="fov"/>
+      <path d="M643 152 C 672 151, 690 150, 709 150" class="ln-a" marker-end="url(#ah1a)"/>
+      <g transform="translate(620 154) rotate(-7)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="robot"/><path d="M8 -8 L19 0 L8 8" class="ln"/><circle cx="17" cy="0" r="2.6" class="fc"/></g>
+      <g transform="translate(733 150)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="ghost"/></g>
+      <rect x="770" y="96" width="130" height="108" class="pallet"/>
+      <path d="M770 117 H900 M770 139 H900 M770 161 H900 M770 183 H900" class="ln-faint"/>
+      <line x1="770" y1="150" x2="826" y2="150" class="ln-a" marker-end="url(#ah1a)"/>
+      <line x1="770" y1="150" x2="770" y2="112" class="ln" marker-end="url(#ah1)"/>
+      <text x="832" y="154" class="b ta">x</text>
+      <text x="777" y="112" class="b">y</text>
+      <text x="620" y="102" text-anchor="middle" class="s">staging pose (sai ±0,1–0,5 m)</text>
+      <text x="733" y="128" text-anchor="middle" class="s ta">đích</text>
+      <text x="835" y="226" text-anchor="middle" class="s">pallet · rack · trạm sạc</text>
+      <text x="330" y="274" text-anchor="middle" class="b">Pha 1 · Nav2 + AMCL dẫn robot tới staging pose</text>
+      <text x="330" y="292" text-anchor="middle" class="s">định vị toàn cục, còn sai 0,1–0,5 m</text>
+      <text x="745" y="262" text-anchor="middle" class="b">Pha 2 · camera 3D + bộ điều khiển docking</text>
+      <text x="745" y="280" text-anchor="middle" class="s">đo pose tương đối của vật → sai số cuối ≤ 2 cm, ≤ 2°</text>
+    </svg>
+    </div>
+    <figcaption>Docking chia hai pha, giống hệ thống xe nâng trong bài báo ICARCV 2018. Pha 1 chỉ cần đưa robot tới gần vật. Pha 2 không dùng bản đồ: camera đo trực tiếp vị trí của vật so với robot, nên sai số định vị toàn cục không ảnh hưởng tới độ chính xác cuối. Mũi tên hổ phách là trục <b>x</b> của frame vật, hướng vào trong vật.</figcaption>
+  </figure>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Mục lục">
+  <details open id="tocbox">
+    <summary>Mục lục</summary>
+    <ol>
+      <li class="part"><a href="#p1">Phần 1 · Kiến thức cần nắm</a>
+        <ol>
+          <li><a href="#k-arch">1.1 Hệ thống gồm những gì</a></li>
+          <li><a href="#k-cloud">1.2 Đám mây điểm</a></li>
+          <li><a href="#k-frames">1.3 Hệ tọa độ và TF</a></li>
+          <li><a href="#k-pipeline">1.4 Một khung hình đi qua đâu</a></li>
+          <li><a href="#k-prep">1.5 Tiền xử lý</a></li>
+          <li><a href="#k-template">1.6 Template của vật</a></li>
+          <li><a href="#k-search">1.7 Tìm kiếm toàn cục 2.5D</a></li>
+          <li><a href="#k-icp">1.8 ICP: khớp tinh</a></li>
+          <li><a href="#k-quality">1.9 Cổng chất lượng</a></li>
+          <li><a href="#k-kalman">1.10 Kalman và vùng mù</a></li>
+          <li><a href="#k-control">1.11 Luật điều khiển và máy trạng thái</a></li>
+          <li><a href="#k-nav2">1.12 Hai cách tích hợp</a></li>
+          <li><a href="#k-perf">1.13 Hiệu năng</a></li>
+        </ol>
+      </li>
+      <li class="part"><a href="#p2">Phần 2 · Cách sử dụng</a>
+        <ol>
+          <li><a href="#u-tree">2.1 Thư mục dự án</a></li>
+          <li><a href="#u-build">2.2 Build và nạp môi trường</a></li>
+          <li><a href="#u-test">2.3 Chạy test và benchmark</a></li>
+          <li><a href="#u-template">2.4 Tạo template cho vật</a></li>
+          <li><a href="#u-estimator">2.5 Chạy với camera thật</a></li>
+          <li><a href="#u-status">2.6 Đọc trạng thái</a></li>
+          <li><a href="#u-dock">2.7 Docking không cần Nav2</a></li>
+          <li><a href="#u-nav2">2.8 Docking với Nav2</a></li>
+          <li><a href="#u-params">2.9 Tham số hay chỉnh</a></li>
+          <li><a href="#u-trouble">2.10 Xử lý sự cố</a></li>
+        </ol>
+      </li>
+      <li class="part"><a href="#p3">Phần 3 · Xem mô phỏng</a>
+        <ol>
+          <li><a href="#s-what">3.1 Mô phỏng gồm những gì</a></li>
+          <li><a href="#s-launch">3.2 Khởi chạy</a></li>
+          <li><a href="#s-gazebo">3.3 Xem trong Gazebo</a></li>
+          <li><a href="#s-rviz">3.4 Xem trong RViz</a></li>
+          <li><a href="#s-run">3.5 Ra lệnh docking</a></li>
+          <li><a href="#s-e2e">3.6 Test tự động E2E</a></li>
+          <li><a href="#s-more">3.7 Thử thêm kịch bản</a></li>
+        </ol>
+      </li>
+    </ol>
+  </details>
+</nav>
+
+<main>
+<!-- ======================================================================= PHẦN 1 -->
+<section id="p1">
+<div class="part-head"><p class="eyebrow">Phần 1</p><h2>Kiến thức cần nắm</h2></div>
+<p class="intro">Phần này đi theo đúng đường dữ liệu: từ điểm ảnh của camera tới lệnh vận tốc gửi xuống bánh xe. Các hình có số liệu đều được tính bằng chính code lõi của dự án (<code>camera3d_docking.core</code>) trên cảnh tổng hợp có đáp án đúng, nên những gì bạn thấy là hành vi thật của chương trình.</p>
+
+<h3 id="k-arch"><span class="num">1.1</span>Hệ thống gồm những gì</h3>
+<p>Chương trình gồm hai node ROS 2. <code>pose_estimator</code> nhận đám mây điểm và trả ra pose của vật. <code>docking_controller</code> nhận pose đó và sinh lệnh <code>cmd_vel</code>. Nếu robot đã chạy Nav2, bạn có thể bỏ node thứ hai và để <code>docking_server</code> của Nav2 nhận pose thay.</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 400" role="img" aria-label="Kiến trúc: driver camera gửi PointCloud2 và cây TF vào pose_estimator; pose_estimator phát detected_dock_pose tới Nav2 docking_server hoặc docking_controller; cả hai gửi cmd_vel xuống đế robot; odometry quay lại cây TF; RViz nhận dữ liệu debug.">
+    <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+    <rect x="16" y="34" width="176" height="72" rx="8" class="box"/>
+    <text x="104" y="62" text-anchor="middle" class="b">Driver camera 3D</text>
+    <text x="104" y="80" text-anchor="middle" class="s">RealSense · Orbbec · OAK-D</text>
+    <text x="104" y="96" text-anchor="middle" class="s">hoặc Gazebo (mô phỏng)</text>
+    <rect x="16" y="150" width="176" height="62" rx="8" class="box"/>
+    <text x="104" y="176" text-anchor="middle" class="b">Cây TF</text>
+    <text x="104" y="196" text-anchor="middle" class="ms">odom→base_link→camera</text>
+    <rect x="300" y="24" width="236" height="216" rx="10" class="box-c"/>
+    <text x="418" y="52" text-anchor="middle" class="m b">pose_estimator</text>
+    <text x="318" y="86">1 · cân bằng sàn, ROI, voxel</text>
+    <text x="318" y="112">2 · tìm kiếm 2.5D khi mất dấu</text>
+    <text x="318" y="138">3 · ICP khớp template</text>
+    <text x="318" y="164">4 · cổng chất lượng</text>
+    <text x="318" y="190">5 · Kalman trong odom</text>
+    <text x="418" y="224" text-anchor="middle" class="ms">dịch vụ ~/reset · ~/enable</text>
+    <line x1="192" y1="70" x2="298" y2="70" class="ln" marker-end="url(#ah2)"/>
+    <text x="245" y="62" text-anchor="middle" class="s">PointCloud2</text>
+    <line x1="192" y1="181" x2="298" y2="181" class="ln" marker-end="url(#ah2)"/>
+    <text x="245" y="173" text-anchor="middle" class="s">tf2 tại stamp</text>
+    <rect x="676" y="26" width="184" height="74" rx="8" class="box-a"/>
+    <text x="768" y="50" text-anchor="middle" class="m b">docking_server</text>
+    <text x="768" y="69" text-anchor="middle" class="s">Nav2 · action DockRobot</text>
+    <text x="768" y="87" text-anchor="middle" class="ms">SimpleNonChargingDock</text>
+    <rect x="676" y="150" width="184" height="74" rx="8" class="box-a"/>
+    <text x="768" y="174" text-anchor="middle" class="m b">docking_controller</text>
+    <text x="768" y="193" text-anchor="middle" class="s">Park–Kuipers + FSM</text>
+    <text x="768" y="211" text-anchor="middle" class="ms">~/start · ~/cancel</text>
+    <line x1="536" y1="61" x2="674" y2="61" class="ln" marker-end="url(#ah2)"/>
+    <text x="605" y="53" text-anchor="middle" class="ms">detected_dock_pose</text>
+    <line x1="536" y1="187" x2="674" y2="187" class="ln" marker-end="url(#ah2)"/>
+    <text x="605" y="179" text-anchor="middle" class="ms">detected_dock_pose</text>
+    <text x="605" y="124" text-anchor="middle" class="s">chọn một trong hai</text>
+    <rect x="874" y="86" width="78" height="78" rx="8" class="box"/>
+    <text x="913" y="121" text-anchor="middle" class="b">Đế</text>
+    <text x="913" y="139" text-anchor="middle" class="b">robot</text>
+    <path d="M860 61 H913 V84" class="ln" marker-end="url(#ah2)"/>
+    <text x="900" y="53" text-anchor="middle" class="ms">cmd_vel</text>
+    <path d="M860 187 H913 V166" class="ln" marker-end="url(#ah2)"/>
+    <text x="900" y="203" text-anchor="middle" class="ms">cmd_vel</text>
+    <rect x="300" y="298" width="236" height="62" rx="8" class="box"/>
+    <text x="418" y="324" text-anchor="middle" class="b">RViz2 · PlotJuggler</text>
+    <text x="418" y="344" text-anchor="middle" class="s">xem debug, vẽ đồ thị</text>
+    <line x1="418" y1="240" x2="418" y2="296" class="ln dash" marker-end="url(#ah2)"/>
+    <text x="428" y="262" class="ms">~/aligned_template</text>
+    <text x="428" y="279" class="ms">~/status (JSON)</text>
+    <path d="M940 164 V384 H104 V214" class="ln dash" marker-end="url(#ah2)"/>
+    <text x="620" y="377" text-anchor="middle" class="s">odometry cập nhật TF odom → base_link</text>
+  </svg>
+  </div>
+  <figcaption>Đường đi của dữ liệu. <b>Đầu vào bắt buộc</b> chỉ có đám mây điểm và cây TF, nên chương trình không phụ thuộc hãng camera. <b>Đầu ra</b> là <code>detected_dock_pose</code> trong frame <code>odom</code>; Nav2 (đường A) hoặc bộ điều khiển riêng (đường B) đều dùng được. Đường đứt nét là dữ liệu phụ để quan sát.</figcaption>
+</figure>
+<p>Lõi thuật toán nằm trong <code>core/</code> và không import ROS, nên test được bằng <code>pytest</code> mà không cần chạy robot. Các node trong <code>ros/</code> chỉ là lớp vỏ mỏng: đọc message, tra TF, gọi lõi, phát kết quả.</p>
+
+<h3 id="k-cloud"><span class="num">1.2</span>Đám mây điểm (PointCloud2)</h3>
+<p>Camera 3D (stereo, ToF hay structured light) đo khoảng cách cho từng pixel. Ghép khoảng cách với hướng tia của pixel ta được một điểm (x, y, z). Toàn bộ ảnh cho ra một <strong>đám mây điểm</strong>, gửi trong ROS bằng message <code>sensor_msgs/PointCloud2</code>.</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f01-pointcloud-light.webp" width="1215" height="459" alt="Trái: ảnh độ sâu 424×240 của cảnh có pallet, hai thùng và bức tường. Phải: cùng dữ liệu vẽ dạng điểm 3D trong base_link, tô màu theo độ cao." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f01-pointcloud-dark.webp" width="1215" height="459" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Cùng một khung hình, hai cách nhìn. <b>A</b>: ảnh độ sâu giống camera D435 (424×240, góc ngang 87°); pixel đen là chỗ không đo được (NaN). <b>B</b>: các điểm sau khi đổi sang frame robot <code>base_link</code>. Pallet nằm ở giữa, cách robot 1,6 m.</figcaption>
+</figure>
+<p>Ba đặc điểm của dữ liệu cần nhớ khi đọc code:</p>
+<ul>
+  <li><strong>Organized cloud</strong>: điểm xếp theo lưới hàng × cột giống ảnh. Nhờ vậy node lấy mẫu thưa rất rẻ (<code>cloud_stride: 2</code> giữ 1/4 số điểm) trước khi làm gì khác.</li>
+  <li><strong>NaN</strong>: pixel không đo được vẫn có mặt trong message. Chương trình bỏ chúng ngay khi chuyển sang numpy.</li>
+  <li><strong>Nhiễu tăng theo bình phương khoảng cách</strong> với camera stereo (σ ≈ 1 mm + 2 mm·z² trong mô phỏng). Vì vậy pose được tinh chỉnh liên tục khi robot tiến lại gần.</li>
+</ul>
+
+<h3 id="k-frames"><span class="num">1.3</span>Hệ tọa độ và TF</h3>
+<p>Mọi con số trong chương trình đều gắn với một <strong>frame</strong> (hệ tọa độ). Theo chuẩn REP-103 của ROS: x hướng tới trước, y sang trái, z lên trên. Bốn frame quan trọng:</p>
+<div class="tbl"><table>
+  <thead><tr><th>Frame</th><th>Gắn với</th><th>Vai trò trong chương trình</th></tr></thead>
+  <tbody>
+    <tr><td><code>odom</code></td><td>sàn nhà (cố định cục bộ)</td><td>Pose vật được lọc và phát trong frame này, vì vật đứng yên trong <code>odom</code>.</td></tr>
+    <tr><td><code>base_link</code></td><td>thân robot, đặt trên mặt sàn</td><td>Đám mây điểm được đổi về đây để cắt ROI và khớp template.</td></tr>
+    <tr><td>frame camera</td><td>camera (lấy từ <code>header.frame_id</code>)</td><td>Theo driver: frame quang học (z vào cảnh, x phải, y xuống) hoặc <code>camera_link</code> (x tới trước). Gazebo dùng loại thứ hai.</td></tr>
+    <tr><td>frame vật</td><td>template của vật</td><td>Gốc ở <strong>tâm mặt trước, trên sàn</strong>; +x hướng vào trong vật; +z lên.</td></tr>
+  </tbody>
+</table></div>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 330" role="img" aria-label="Hệ tọa độ: nhìn ngang thấy base_link trên sàn, camera cao 0,30 m chúc 10 độ, frame vật ở tâm mặt trước pallet trên sàn; nhìn từ trên thấy odom, base_link và phép biến đổi T_base_obj tới frame vật.">
+    <defs>
+      <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="ah3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+    </defs>
+    <text x="20" y="26" class="h">Nhìn ngang</text>
+    <path d="M176 250 L214 280 L460 280 L460 158 Z" class="fov"/>
+    <line x1="20" y1="280" x2="462" y2="280" class="floor"/>
+    <rect x="40" y="244" width="136" height="26" rx="4" class="robot"/>
+    <circle cx="70" cy="272" r="8" class="robot"/><circle cx="146" cy="272" r="8" class="robot"/>
+    <rect x="166" y="243" width="16" height="13" rx="2" class="fc" transform="rotate(10 174 250)"/>
+    <line x1="176" y1="250" x2="300" y2="272" class="ln-c dash"/>
+    <line x1="176" y1="250" x2="219" y2="257.6" class="ln" marker-end="url(#ah3)"/>
+    <line x1="176" y1="250" x2="170" y2="216.5" class="ln" marker-end="url(#ah3)"/>
+    <text x="224" y="252" class="s">x</text>
+    <text x="156" y="214" class="s">z</text>
+    <text x="40" y="190" class="b">camera</text>
+    <text x="40" y="206" class="s">cao 0,30 m · chúc 10° · góc dọc 57°</text>
+    <text x="318" y="246" class="s tc">trục quang</text>
+    <line x1="108" y1="280" x2="150" y2="280" class="ln" marker-end="url(#ah3)" stroke-width="2"/>
+    <line x1="108" y1="280" x2="108" y2="236" class="ln" marker-end="url(#ah3)" stroke-width="2"/>
+    <text x="108" y="300" text-anchor="middle" class="m b">base_link</text>
+    <rect x="300" y="266" width="120" height="14" class="pallet"/>
+    <line x1="300" y1="280" x2="352" y2="280" class="ln-a" marker-end="url(#ah3a)"/>
+    <line x1="300" y1="280" x2="300" y2="236" class="ln-a" marker-end="url(#ah3a)"/>
+    <text x="356" y="298" class="b ta">x vật</text>
+    <text x="306" y="236" class="b ta">z</text>
+    <text x="300" y="318" text-anchor="middle" class="s">gốc frame vật: tâm mặt trước, trên sàn</text>
+
+    <line x1="486" y1="16" x2="486" y2="320" class="ln-faint"/>
+    <text x="506" y="26" class="h">Nhìn từ trên</text>
+    <line x1="520" y1="296" x2="566" y2="296" class="ln" marker-end="url(#ah3)"/>
+    <line x1="520" y1="296" x2="520" y2="250" class="ln" marker-end="url(#ah3)"/>
+    <text x="572" y="300" class="s">x</text><text x="512" y="248" class="s">y</text>
+    <text x="520" y="318" class="m b">odom</text>
+    <path d="M526 290 Q 560 236 604 214" class="ln dash" marker-end="url(#ah3)"/>
+    <text x="551" y="246" text-anchor="end" class="s">odometry</text>
+    <g transform="translate(612 210) rotate(-12)">
+      <rect x="-30" y="-20" width="50" height="40" rx="6" class="robot"/>
+      <line x1="0" y1="0" x2="50" y2="0" class="ln" marker-end="url(#ah3)" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="-40" class="ln" marker-end="url(#ah3)" stroke-width="2"/>
+    </g>
+    <text x="606" y="250" text-anchor="middle" class="m b">base_link</text>
+    <g transform="translate(828 128) rotate(13)">
+      <rect x="0" y="-34" width="100" height="68" class="pallet"/>
+      <line x1="0" y1="0" x2="56" y2="0" class="ln-a" marker-end="url(#ah3a)" stroke-width="2.2"/>
+      <line x1="0" y1="0" x2="0" y2="-46" class="ln-a" marker-end="url(#ah3a)" stroke-width="2.2"/>
+    </g>
+    <text x="880" y="196" text-anchor="middle" class="b ta">frame vật</text>
+    <line x1="612" y1="210" x2="824" y2="130" class="ln-a dash" marker-end="url(#ah3a)"/>
+    <text transform="translate(712 160) rotate(-20.7)" text-anchor="middle" class="m ta">T_base_obj = (x, y, yaw)</text>
+  </svg>
+  </div>
+  <figcaption><b>Trái</b>: camera gắn cao 0,30 m, chúc xuống 10° (thông số dùng trong mô phỏng). Vùng xanh là thứ camera nhìn thấy. <b>Phải</b>: estimator đo <code>T_base_obj</code>, tức pose của vật trong <code>base_link</code>. Node nhân thêm <code>T_odom_base</code> (từ odometry) để có pose vật trong <code>odom</code>; con số này đứng yên khi robot chạy.</figcaption>
+</figure>
+<div class="note warn">
+  <span class="lbl">Lỗi hay gặp: nhầm chiều phép biến đổi</span>
+  <p><code>T_base_obj</code> đưa một điểm từ frame vật sang frame robot: <code>p_base = T_base_obj · p_obj</code>. Bên trong ICP, chương trình giải phép ngược <code>T_obj_base</code> (đưa điểm cảnh về frame vật) rồi mới nghịch đảo. File hướng dẫn <code>.md</code> ban đầu đọc thẳng phần dịch chuyển của <code>T_target_source</code>, nên sai cả dấu lẫn giá trị mỗi khi vật bị xoay. Khi tự viết code, luôn ghi rõ “từ frame nào sang frame nào”.</p>
+</div>
+<p>Cách kiểm tra TF nhanh nhất: sau khi đổi cloud về <code>base_link</code>, các điểm sàn phải nằm ở z ≈ 0. Trong mô phỏng, session phát triển đã kiểm chứng điều này (sàn z = 0 ± 7 mm) và phát hiện cloud của Gazebo dùng trục x tới trước chứ không phải frame quang học.</p>
+
+<h3 id="k-pipeline"><span class="num">1.4</span>Một khung hình đi qua đâu</h3>
+<p>Mỗi khi có cloud mới (giới hạn 10 khung/giây), node làm chuỗi bước dưới đây. Nhánh trên (bám) chạy gần như mọi lúc. Nhánh dưới (tìm kiếm) chỉ chạy khi chưa có hoặc vừa mất pose.</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 360" role="img" aria-label="Pipeline mỗi khung: PointCloud2 sang numpy, đổi sang base_link, cân bằng sàn, cắt ROI, gộp voxel; sau đó nếu có pose dự đoán thì ICP bám, nếu không thì tìm kiếm 2.5D rồi ICP; qua cổng chất lượng; đạt thì cập nhật Kalman và phát pose, không đạt thì báo trạng thái lỗi.">
+    <defs><marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+    <rect x="20" y="40" width="168" height="62" rx="8" class="box-c"/>
+    <text x="104" y="66" text-anchor="middle" class="b">PointCloud2 → numpy</text>
+    <text x="104" y="86" text-anchor="middle" class="s">stride 2 · bỏ NaN</text>
+    <rect x="208" y="40" width="168" height="62" rx="8" class="box"/>
+    <text x="292" y="66" text-anchor="middle" class="b">Sang base_link</text>
+    <text x="292" y="86" text-anchor="middle" class="s">TF tại stamp của cloud</text>
+    <rect x="396" y="40" width="168" height="62" rx="8" class="box"/>
+    <text x="480" y="66" text-anchor="middle" class="b">Cân bằng sàn</text>
+    <text x="480" y="86" text-anchor="middle" class="s">RANSAC mặt sàn</text>
+    <rect x="584" y="40" width="168" height="62" rx="8" class="box"/>
+    <text x="668" y="66" text-anchor="middle" class="b">Cắt ROI, xóa sàn</text>
+    <text x="668" y="86" text-anchor="middle" class="s">x 0,25–3,5 m · |y| ≤ 1,5 m</text>
+    <rect x="772" y="40" width="168" height="62" rx="8" class="box"/>
+    <text x="856" y="66" text-anchor="middle" class="b">Gộp voxel 2 cm</text>
+    <text x="856" y="86" text-anchor="middle" class="s">còn ≈ 2 000 điểm</text>
+    <line x1="188" y1="71" x2="206" y2="71" class="ln" marker-end="url(#ah4)"/>
+    <line x1="376" y1="71" x2="394" y2="71" class="ln" marker-end="url(#ah4)"/>
+    <line x1="564" y1="71" x2="582" y2="71" class="ln" marker-end="url(#ah4)"/>
+    <line x1="752" y1="71" x2="770" y2="71" class="ln" marker-end="url(#ah4)"/>
+    <path d="M856 102 V132 H110 V164" class="ln" marker-end="url(#ah4)"/>
+    <text x="480" y="125" text-anchor="middle" class="s">điểm cảnh đã làm sạch</text>
+    <polygon points="30,206 110,166 190,206 110,246" class="box"/>
+    <text x="110" y="202" text-anchor="middle">có pose dự đoán</text>
+    <text x="110" y="219" text-anchor="middle">từ Kalman?</text>
+    <path d="M190 206 H215 V179 H248" class="ln" marker-end="url(#ah4)"/>
+    <path d="M215 206 V291 H248" class="ln" marker-end="url(#ah4)"/>
+    <text x="231" y="172" text-anchor="middle" class="s tok">có</text>
+    <text x="231" y="284" text-anchor="middle" class="s tbad">không</text>
+    <rect x="250" y="150" width="220" height="58" rx="8" class="box-a"/>
+    <text x="360" y="174" text-anchor="middle" class="b">Bám: ICP từ pose dự đoán</text>
+    <text x="360" y="194" text-anchor="middle" class="s">≈ 10 ms mỗi khung</text>
+    <rect x="250" y="262" width="220" height="58" rx="8" class="box-a"/>
+    <text x="360" y="286" text-anchor="middle" class="b">Tìm 2.5D → top-5 → ICP</text>
+    <text x="360" y="306" text-anchor="middle" class="s">≈ 100 ms, chỉ khi mất dấu</text>
+    <line x1="360" y1="208" x2="360" y2="260" class="ln dash" marker-end="url(#ah4)"/>
+    <text x="352" y="238" text-anchor="end" class="s">nhảy cóc → tìm lại</text>
+    <path d="M470 179 H520 V235 H558" class="ln" marker-end="url(#ah4)"/>
+    <path d="M470 291 H520 V235" class="ln"/>
+    <rect x="560" y="206" width="170" height="58" rx="8" class="box"/>
+    <text x="645" y="230" text-anchor="middle" class="b">Cổng chất lượng</text>
+    <text x="645" y="250" text-anchor="middle" class="s">6 tiêu chí (mục 1.9)</text>
+    <path d="M730 235 H750 V179 H768" class="ln" marker-end="url(#ah4)"/>
+    <text x="759" y="172" text-anchor="middle" class="s tok b">OK</text>
+    <rect x="770" y="150" width="180" height="58" rx="8" class="box-ok"/>
+    <text x="860" y="174" text-anchor="middle" class="b">Kalman trong odom</text>
+    <text x="860" y="194" text-anchor="middle" class="s">cổng Mahalanobis</text>
+    <line x1="860" y1="208" x2="860" y2="260" class="ln" marker-end="url(#ah4)"/>
+    <rect x="770" y="262" width="180" height="58" rx="8" class="box-ok"/>
+    <text x="860" y="286" text-anchor="middle" class="b">Phát kết quả</text>
+    <text x="860" y="306" text-anchor="middle" class="ms">detected_dock_pose</text>
+    <line x1="645" y1="264" x2="645" y2="298" class="ln-bad" marker-end="url(#ah4)"/>
+    <rect x="560" y="300" width="170" height="48" rx="8" class="box-bad"/>
+    <text x="645" y="320" text-anchor="middle" class="b tbad">status ≠ OK</text>
+    <text x="645" y="338" text-anchor="middle" class="s">không phát pose mới</text>
+  </svg>
+  </div>
+  <figcaption>Pipeline xử lý một khung (code: <code>core/estimator.py</code> và <code>ros/pose_estimator.py</code>). Hàng trên là tiền xử lý, rẻ và chạy mọi khung. Ở chế độ bám, ICP bắt đầu từ pose mà Kalman dự đoán nên chỉ mất khoảng 10 ms. Kết quả không qua được cổng chất lượng thì <b>không được phát</b>; lý do được ghi vào <code>~/status</code>.</figcaption>
+</figure>
+
+<h3 id="k-prep"><span class="num">1.5</span>Tiền xử lý: cân bằng sàn, ROI, voxel</h3>
+<h4>Cân bằng sàn bằng RANSAC</h4>
+<p>Góc chúc của camera khai trong TF hiếm khi đúng tuyệt đối. Chỉ cần lệch 1°, mặt sàn ở xa 2 m đã cao hoặc thấp đi khoảng 3,5 cm, đủ làm hỏng phép khớp. Vì vậy node lấy các điểm gần sàn, dùng <strong>RANSAC</strong> tìm mặt phẳng sàn, rồi xoay nhẹ đám mây để sàn nằm đúng ở z = 0. RANSAC chọn ngẫu nhiên nhiều bộ 3 điểm, giữ mặt phẳng được nhiều điểm “đồng ý” nhất, nên vật trên sàn không làm lệch kết quả.</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f02-leveling-light.webp" width="1224" height="472" alt="Nhìn ngang: khi TF sai 2 độ, sàn và pallet nghiêng, mặt sàn ở 2 m thấp 7 cm; sau khi cân bằng, sàn nằm ở z bằng 0 và mặt pallet ở 0,144 m." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f02-leveling-dark.webp" width="1224" height="472" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Thử nghiệm với TF khai camera chúc 12° trong khi thực tế là 10°. <b>A</b>: sàn bị nghiêng đúng 2,0°, ở x = 2 m lệch −7,0 cm. <b>B</b>: sau khi cân bằng, sàn về z = 0 và mặt pallet về đúng 0,144 m. Phép xoay chỉ sửa roll, pitch và độ cao; không đổi x, y, yaw.</figcaption>
+</figure>
+<h4>Cắt ROI, xóa sàn và gộp voxel</h4>
+<p>Sau khi cân bằng, node chỉ giữ các điểm trong một hộp phía trước robot (ROI, mặc định x 0,25–3,5 m, |y| ≤ 1,5 m, z 3 cm–2 m trên sàn). Ngưỡng z = 3 cm cũng chính là bước xóa sàn. Cuối cùng các điểm được gộp vào ô lưới 2 cm (<strong>voxel</strong>): mỗi ô chỉ còn một điểm là trọng tâm của các điểm trong ô. Mật độ điểm vì vậy đều nhau dù vật ở gần hay xa.</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f03-roi-voxel-light.webp" width="1250" height="526" alt="Nhìn từ trên: 24.441 điểm ban đầu, còn 3.288 điểm sau khi cắt ROI và bỏ sàn, còn 1.948 điểm sau khi gộp voxel 2 cm." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f03-roi-voxel-dark.webp" width="1250" height="526" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Nhìn từ trên xuống, robot ở dưới cùng nhìn lên. <b>A</b>: 24.441 điểm sau stride 2. <b>B</b>: cắt ROI và bỏ sàn còn 3.288 điểm; bức tường ở 3,85 m nằm ngoài ROI. <b>C</b>: voxel 2 cm còn 1.948 điểm, ít hơn 12 lần so với ban đầu. Đây là lý do chương trình chạy được trên CPU yếu.</figcaption>
+</figure>
+
+<h3 id="k-template"><span class="num">1.6</span>Template của vật</h3>
+<p>Chương trình không “học” vật bằng mạng nơ-ron. Nó cần một <strong>template</strong>: tập điểm kèm pháp tuyến mô tả bề mặt nhìn thấy được của vật, đặt trong frame vật. Template được lưu thành file <code>.npz</code>; có thể xuất <code>.pcd</code> để mở bằng CloudCompare.</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f04-template-light.webp" width="1158" height="448" alt="Template pallet EUR gồm 19.678 điểm tô màu theo pháp tuyến; nhìn thẳng mặt trước thấy hai hốc càng rộng 227,5 mm cao 78 mm." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f04-template-dark.webp" width="1158" height="448" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Template pallet EUR 1200 × 800 × 144 mm, tiếp cận từ mặt rộng 800 mm. <b>A</b>: 19.678 điểm; màu cho biết hướng pháp tuyến. <b>B</b>: nhìn thẳng vào mặt trước. Hai hốc càng là đặc trưng quan trọng nhất: chúng giúp phân biệt pallet với một bức tường phẳng và giữ cho phép khớp không trượt ngang.</figcaption>
+</figure>
+<p>Có ba cách tạo template:</p>
+<div class="cols">
+  <div class="card"><h4>Từ mô hình hộp</h4><p class="small">Mô tả vật bằng các hộp chữ nhật (pallet, rack, dock chữ V), rồi chiếu tia từ 20 điểm nhìn ảo phía trước để giữ lại phần bề mặt <em>thực sự thấy được</em>. Thế giới Gazebo cũng sinh từ cùng các hộp này.</p></div>
+  <div class="card"><h4>Từ file CAD</h4><p class="small">Đọc STL hoặc OBJ, lấy mẫu bề mặt theo diện tích, bỏ các mặt quay lưng với robot. Đủ dùng cho vật lồi; chưa tính phần bị che khuất.</p></div>
+  <div class="card"><h4>Quét thực tế</h4><p class="small">Đặt robot ở vị trí đã biết so với vật, lưu vài cloud bằng <code>cloud_saver</code>, rồi gộp lại. Chính xác nhất vì mang đúng đặc tính nhiễu của camera thật.</p></div>
+</div>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f04b-templates-light.webp" width="1207" height="430" alt="Ba template có sẵn: pallet EUR, rack một khoang và dock chữ V." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f04b-templates-dark.webp" width="1207" height="430" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Ba template có sẵn trong <code>templates/</code>: <code>euro_pallet.npz</code>, <code>rack.npz</code>, <code>v_dock.npz</code>. Với trạm sạc, nên làm mặt dock hình chữ V: một tấm phẳng không cho biết robot lệch ngang bao nhiêu (xem mục 1.9).</figcaption>
+</figure>
+
+<h3 id="k-search"><span class="num">1.7</span>Tìm kiếm toàn cục 2.5D</h3>
+<p>ICP (mục sau) chỉ hội tụ khi pose ban đầu đã gần đúng, trong khoảng ±7 cm và ±6°. Lần đầu nhìn thấy vật, hoặc khi mất dấu, ta chưa có pose nào. Bước <strong>tìm kiếm toàn cục</strong> quét mọi vị trí (x, y) và mọi góc yaw trong ROI để đưa ra vài ứng viên tốt. Thay vì dùng YOLO hay đặc trưng FPFH (nặng, cần GPU hoặc huấn luyện), chương trình dùng một phép tương quan 2.5D rẻ:</p>
+<ol>
+  <li>Chia chiều cao của template thành 3 dải. Trong mỗi dải, chiếu điểm cảnh xuống lưới 2D ô 3 cm, được 3 “bản đồ chiếm chỗ”.</li>
+  <li>Với mỗi góc yaw từ −45° đến +45° (bước 3°, tổng 31 góc), template cũng được chiếu thành 2 mặt nạ: <strong>P</strong> là các ô bề mặt, <strong>F</strong> là các ô <em>phải trống</em>, nằm trước bề mặt đầu tiên, ví dụ bên trong hốc càng.</li>
+  <li>Điểm số = mức trùng giữa cảnh và P, trừ đi 0,5 × mức cảnh lấn vào F. Một bức tường phẳng lấp kín hốc càng nên bị phạt, không thể “giả làm” pallet.</li>
+  <li>Phép trùng được tính cho mọi vị trí cùng lúc bằng FFT. Giữ 5 đỉnh tốt nhất, cách nhau ít nhất 15 cm hoặc 10°.</li>
+</ol>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f05-search-light.webp" width="1333" height="828" alt="Hàng trên: ba dải độ cao của cảnh và mẫu template với ô bề mặt và ô phải trống. Hàng dưới: bản đồ điểm số với 5 giả thuyết, giả thuyết số 1 trùng vị trí thật; đường điểm số theo yaw có đỉnh ở 6 độ, gần yaw thật 8 độ." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f05-search-dark.webp" width="1333" height="828" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Tìm kiếm trên cảnh của mục 1.2 (pallet thật ở x = 1,60 m, y = 0,10 m, yaw = 8°). <b>A1–A3</b>: cảnh chia theo 3 dải độ cao, nhìn từ trên. <b>A4</b>: mẫu template ở dải thấp nhất: ba khối chân pallet (cam) và hai cột phải trống chạy dọc hốc càng (xanh). <b>B</b>: điểm số cao nhất tại mỗi ô; giả thuyết #1 (vòng xanh) trùng dấu + của vị trí thật. <b>C</b>: điểm số theo yaw tại #1, đỉnh ở 6°. Sai 4,5 cm và 2° là bình thường với lưới 3 cm và bước 3°; ICP sẽ sửa phần còn lại.</figcaption>
+</figure>
+
+<h3 id="k-icp"><span class="num">1.8</span>ICP: khớp tinh template vào cảnh</h3>
+<p><strong>ICP</strong> (Iterative Closest Point) lặp lại hai việc: (1) với mỗi điểm cảnh, tìm điểm template gần nhất; (2) tính phép dịch và xoay nhỏ làm các cặp điểm khớp nhau hơn. Phiên bản trong chương trình có thêm vài chi tiết để vừa chính xác vừa nhanh:</p>
+<ul>
+  <li><strong>Point-to-plane</strong>: đo khoảng cách theo pháp tuyến của template thay vì khoảng cách điểm–điểm. Mặt phẳng được phép “trượt” trên chính nó, nên hội tụ nhanh hơn nhiều.</li>
+  <li><strong>4 bậc tự do</strong> (x, y, z, yaw): vật đứng trên sàn đã được cân bằng nên roll và pitch bị khóa. Ít ẩn hơn thì bền hơn.</li>
+  <li><strong>Ba tầng thô → tinh</strong>: khoảng ghép cặp tối đa 15 cm, rồi 6 cm, rồi 3 cm. Tầng đầu kéo template về gần, tầng cuối mới chỉnh từng milimét.</li>
+  <li><strong>Lưới tra cứu tính sẵn</strong>: mỗi ô 1 cm lưu sẵn chỉ số điểm template gần nhất, nên tìm láng giềng chỉ tốn O(1), nhanh hơn KD-tree 5–10 lần. Riêng tầng cuối dùng KD-tree chính xác.</li>
+  <li><strong>Trọng số Tukey</strong>: điểm lệch quá xa (nhiễu, vật lạ) được giảm trọng số về 0 thay vì kéo lệch kết quả.</li>
+</ul>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f06-icp-light.webp" width="1199" height="571" alt="ICP: từ pose khởi tạo lệch 7 cm và 5 độ, template được kéo về khớp với cảnh; sai số giảm qua 3 tầng còn 0,8 mm và 0,01 độ sau 11 vòng." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f06-icp-dark.webp" width="1206" height="571" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>ICP trên pallet thật ở (1,5 m; 0,2 m; 10°) có nhiễu kiểu stereo, bắt đầu từ pose lệch 7,1 cm và 5°. <b>A</b>: khung đứt nét đỏ là pose ban đầu, khung cam là kết quả; chấm xanh là điểm cảnh. <b>B</b>: sau 11 vòng (8 + 1 + 2 qua ba tầng), sai số còn <b>0,8 mm và 0,01°</b>. Ở chế độ bám, cả bước ICP chỉ mất khoảng 5 ms.</figcaption>
+</figure>
+
+<h3 id="k-quality"><span class="num">1.9</span>Cổng chất lượng: thà không trả lời còn hơn trả lời sai</h3>
+<p>Một pose sai mà không có cảnh báo có thể làm robot đâm vào vật. Vì vậy mọi kết quả ICP phải qua <strong>6 tiêu chí</strong> trước khi được phát. Ngưỡng mặc định nằm trong <code>config/estimator.yaml</code>:</p>
+<div class="tbl"><table>
+  <thead><tr><th>Tiêu chí</th><th>Ý nghĩa</th><th>Ngưỡng</th><th>Không đạt →</th></tr></thead>
+  <tbody>
+    <tr><td><code>coverage</code></td><td>Tỷ lệ điểm template quay về camera (bỏ mặt nhìn quá xiên, &gt; 75°) có điểm cảnh trong vòng 3 cm</td><td class="num">≥ 0,35</td><td><span class="pill warn">LOW_QUALITY</span></td></tr>
+    <tr><td><code>inlier_ratio</code></td><td>Tỷ lệ điểm cảnh quanh vật nằm sát bề mặt template (&lt; 2 cm)</td><td class="num">≥ 0,5</td><td><span class="pill warn">LOW_QUALITY</span></td></tr>
+    <tr><td><code>rmse</code></td><td>Sai lệch trung bình theo pháp tuyến của các inlier</td><td class="num">≤ 1,5 cm</td><td><span class="pill warn">LOW_QUALITY</span></td></tr>
+    <tr><td><code>observability</code></td><td>Dịch thử 3 cm sang ngang hoặc xoay thử 1,5°: chi phí có tăng rõ không?</td><td class="num">≥ 0,008</td><td><span class="pill bad">DEGENERATE</span></td></tr>
+    <tr><td><code>sigma_xy</code>, <code>sigma_yaw</code></td><td>Độ bất định ước lượng từ ICP (đã nhân hệ số 25 cho thận trọng)</td><td class="num">≤ 2 cm; ≤ 1,5°</td><td><span class="pill warn">LOW_QUALITY</span></td></tr>
+    <tr><td>Mơ hồ</td><td>Ứng viên tốt nhì ở chỗ khác (&gt; 5 cm hoặc &gt; 3°) có điểm ≥ 0,9 × tốt nhất</td><td class="num">tỷ số &lt; 0,9</td><td><span class="pill bad">AMBIGUOUS</span></td></tr>
+  </tbody>
+</table></div>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f07-quality-light.webp" width="1332" height="641" alt="Trái: khi dịch template sang ngang, chi phí của pallet và dock chữ V tăng mạnh còn tấm phẳng sát tường gần như không đổi nên bị gắn cờ suy biến. Phải: hai pallet giống nhau cạnh nhau có cùng điểm 0,78, tỷ số 1,00, kết quả AMBIGUOUS; thu hẹp ROI về bên trái thì OK." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f07-quality-dark.webp" width="1332" height="641" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Hai tình huống nguy hiểm mà cổng chất lượng bắt được. <b>A, B (suy biến)</b>: dịch hoặc xoay template quanh nghiệm rồi đo chi phí. Pallet (0,032) và dock chữ V (0,010) đều tăng rõ. Tấm phẳng sát tường chỉ đạt 0,003, nghĩa là có thể trượt ngang mà không ai biết, nên bị từ chối. <b>C (mơ hồ)</b>: hai pallet giống hệt ở y = ±0,65 m cho cùng điểm 0,78. Chương trình báo AMBIGUOUS thay vì chọn bừa. Đây là lỗi “lệch nửa pallet” mà bài ICARCV 2018 từng gặp. Thu hẹp ROI về y &gt; 0 thì kết quả là OK, đúng pallet bên trái (y = 0,650 m).</figcaption>
+</figure>
+<div class="note">
+  <span class="lbl">Bảng trạng thái của estimator</span>
+  <p><span class="pill ok">OK</span> pose đạt mọi tiêu chí, đã phát. <span class="pill info">BLIND_HOLD</span> robot đã vào vùng mù, đang phát pose giữ từ Kalman. <span class="pill warn">NO_POINTS</span> ROI có dưới 50 điểm. <span class="pill warn">NOT_FOUND</span> tìm kiếm không có ứng viên nào. <span class="pill warn">LOW_QUALITY</span>, <span class="pill bad">DEGENERATE</span>, <span class="pill bad">AMBIGUOUS</span> như bảng trên.</p>
+</div>
+
+<h3 id="k-kalman"><span class="num">1.10</span>Bộ lọc Kalman và vùng mù</h3>
+<p>Khi robot tới rất gần, camera không còn thấy vật: vật nằm dưới tầm đo tối thiểu hoặc ra khỏi khung hình. Bài báo của Aghili (2022) xử lý tình huống tương tự bằng bộ lọc Kalman. Chương trình dùng ý tưởng đó với giả định đơn giản: <strong>vật đứng yên trong frame <code>odom</code></strong>.</p>
+<ul>
+  <li>Mỗi phép đo hợp lệ (x, y, yaw của vật trong <code>odom</code>) cập nhật bộ lọc; nhiễu càng nhỏ thì càng được tin.</li>
+  <li><strong>Cổng Mahalanobis</strong> (χ² = 14,16): phép đo lệch quá xa so với dự đoán bị loại. Nếu 5 phép đo liên tiếp bị loại nhưng nhất quán với nhau, bộ lọc khởi tạo lại (sửa trường hợp khóa sai lúc đầu).</li>
+  <li><strong>Giữ pose (hold)</strong>: khi mất dấu dưới 2 s, hoặc khi robot cách vật dưới 0,6 m, node vẫn phát pose Kalman 10 lần/giây. Bộ điều khiển nhờ vậy không báo “mất phát hiện” ở đoạn cuối.</li>
+</ul>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f08-kalman-light.webp" width="1198" height="671" alt="Trên: khoảng cách robot tới vật giảm từ 2,35 m về 0,37 m, có đoạn bị che 1,2 giây và vùng mù dưới 0,6 m. Dưới: ước lượng y của vật trong odom; phép đo sai lệch 32 cm bị loại; trong lúc bị che và trong vùng mù, pose Kalman vẫn được phát, độ bất định tăng chậm." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f08-kalman-dark.webp" width="1198" height="671" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Mô phỏng một lần tiếp cận bằng <code>DockingFSM</code> và <code>StaticPoseKF</code> thật, với 3 sự cố. Ở giây thứ 2 có một khung nhận nhầm, lệch 32 cm; cổng Mahalanobis loại nó và pose không nhảy. Từ 3,0 đến 4,2 s camera bị che; pose vẫn được giữ. Từ 11,5 s robot vào vùng mù; dải ±2σ nở dần (mô hình cho phép odometry trôi 5 mm/√s), nhưng pose vẫn ở đúng chỗ cho tới khi dock xong.</figcaption>
+</figure>
+
+<h3 id="k-control"><span class="num">1.11</span>Luật điều khiển và máy trạng thái</h3>
+<p>Bộ điều khiển riêng (<code>docking_controller</code>) dùng <strong>luật điều khiển mượt của Park &amp; Kuipers (2011)</strong>. Nav2 cũng dùng luật này trong <code>graceful_controller</code>, với cùng tham số mặc định. Ý tưởng: từ vị trí đích (x, y) và hướng đích ψ trong frame robot, tính độ cong κ của quỹ đạo sao cho robot vừa tới đích vừa quay đúng hướng ở đoạn cuối.</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" style="max-width:640px;margin:0 auto" viewBox="0 0 560 290" role="img" aria-label="Hình học của luật điều khiển: robot ở gốc, đích ở khoảng cách r, góc alpha giữa hướng robot và đường nối tới đích, góc phi giữa đường nối và hướng đích psi.">
+    <defs>
+      <marker id="ah6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+    </defs>
+    <line x1="90" y1="230" x2="270" y2="230" class="ln-faint dash"/>
+    <text x="276" y="234" class="s">hướng robot (x)</text>
+    <line x1="90" y1="230" x2="406" y2="111.5" class="ln dash"/>
+    <line x1="410" y1="110" x2="470" y2="87.5" class="ln-faint dash"/>
+    <g transform="translate(90 230)"><rect x="-24" y="-16" width="48" height="32" rx="6" class="robot"/><path d="M9 -8 L20 0 L9 8" class="ln"/></g>
+    <path d="M150 230 A60 60 0 0 0 146.2 208.9" class="ln" stroke-width="1.6"/>
+    <text x="158" y="219" class="b">α</text>
+    <text x="236" y="166" class="b">r</text>
+    <g transform="translate(410 110) rotate(-10)"><rect x="-24" y="-16" width="48" height="32" rx="6" class="ghost"/></g>
+    <line x1="410" y1="110" x2="482" y2="97.3" class="ln-a" marker-end="url(#ah6a)"/>
+    <text x="488" y="98" class="b ta">ψ</text>
+    <path d="M451.2 94.5 A44 44 0 0 1 453.3 102.4" class="ln" stroke-width="1.6"/>
+    <text x="458" y="118" class="b">φ</text>
+    <text x="410" y="152" text-anchor="middle" class="s">đích (x, y, ψ) trong base_link</text>
+    <text x="90" y="268" text-anchor="middle" class="s">robot</text>
+  </svg>
+  </div>
+  <figcaption>Các đại lượng của luật Park–Kuipers: <code>α = atan2(y, x)</code> là góc tới đích, <code>φ = ψ − α</code>, <code>δ = −α</code>, <code>r</code> là khoảng cách. Độ cong <code>κ = −(1/r)·[k_δ(δ − atan(−k_φ·φ)) + (1 + k_φ/(1 + (k_φφ)²))·sin δ]</code>. Tốc độ <code>v = v_max / (1 + β|κ|^λ)</code>, tự giảm khi cua gắt hoặc khi còn dưới 0,25 m; <code>ω = κ·v</code>. Mặc định k_φ = 3, k_δ = 2, β = 0,4, λ = 2.</figcaption>
+</figure>
+<p><strong>Đích của robot</strong> không phải chính frame vật, mà là frame vật dịch đi một đoạn: <code>T_odom_target = T_odom_vật · T(dock_offset_x, dock_offset_y)</code>. Mặc định <code>dock_offset_x = −0,35</code>: <code>base_link</code> dừng trước mặt vật 0,35 m. Với xe nâng có càng đi vào pallet thì offset dương. Nếu xe lùi vào (càng ở phía sau), đặt <code>backward: true</code>.</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f09-control-light.webp" width="1173" height="602" alt="Trái: quỹ đạo từ 5 điểm xuất phát lệch ngang và lệch hướng đều hội tụ về một đường thẳng vào đích. Phải: vận tốc v tăng tới 0,2 m/s, giảm còn 0,08 m/s khi vào vùng mù, dừng sau 15,9 giây." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f09-control-dark.webp" width="1173" height="602" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Chạy <code>DockingFSM</code> thật với tham số trong <code>config/controller.yaml</code> trên mô hình xe hai bánh lý tưởng. <b>A</b>: từ 5 điểm xuất phát (lệch ±0,3 m, ±20°), mọi quỹ đạo nắn thẳng trước khi vào vùng mù (cam). <b>B</b>: lệnh vận tốc cho một lần chạy. v thấp lúc đầu vì phải cua gắt, đạt 0,2 m/s, bị kẹp còn 0,08 m/s trong vùng mù, rồi giảm dần và dừng khi còn dưới 1 cm. Cả 5 lần đều DOCKED sau 13,5–15,9 s.</figcaption>
+</figure>
+<p>Bao quanh luật điều khiển là một <strong>máy trạng thái</strong> (FSM) quyết định khi nào chạy, khi nào dừng, khi nào thử lại:</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 290" role="img" aria-label="Máy trạng thái docking: IDLE sang WAIT_DETECTION khi gọi start; sang APPROACH khi có pose mới; sang BLIND khi còn dưới 0,6 m; sang DOCKED khi còn dưới 1 cm hoặc có tiếp xúc. Mất dấu quá 1 giây ở APPROACH thì sang RETREAT, lùi 0,5 m rồi thử lại tối đa 2 lần; quá 5 giây không thấy vật hoặc hết lượt thử thì FAILED.">
+    <defs>
+      <marker id="ah7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="ah7b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fbad"/></marker>
+    </defs>
+    <rect x="16" y="60" width="100" height="44" rx="22" class="box"/>
+    <text x="66" y="87" text-anchor="middle" class="m b">IDLE</text>
+    <rect x="170" y="60" width="190" height="44" rx="22" class="box"/>
+    <text x="265" y="87" text-anchor="middle" class="m b">WAIT_DETECTION</text>
+    <rect x="410" y="60" width="130" height="44" rx="22" class="box-c"/>
+    <text x="475" y="87" text-anchor="middle" class="m b">APPROACH</text>
+    <rect x="590" y="60" width="110" height="44" rx="22" class="box-a"/>
+    <text x="645" y="87" text-anchor="middle" class="m b">BLIND</text>
+    <rect x="752" y="60" width="120" height="44" rx="22" class="box-ok"/>
+    <text x="812" y="87" text-anchor="middle" class="m b">DOCKED</text>
+    <rect x="320" y="198" width="140" height="44" rx="22" class="box"/>
+    <text x="390" y="225" text-anchor="middle" class="m b">RETREAT</text>
+    <rect x="16" y="198" width="200" height="44" rx="22" class="box-bad"/>
+    <text x="116" y="225" text-anchor="middle" class="m b">FAILED</text>
+    <line x1="116" y1="82" x2="168" y2="82" class="ln" marker-end="url(#ah7)"/>
+    <text x="142" y="48" text-anchor="middle" class="ms">~/start</text>
+    <line x1="360" y1="82" x2="408" y2="82" class="ln" marker-end="url(#ah7)"/>
+    <text x="384" y="40" text-anchor="middle" class="s">có pose</text>
+    <text x="384" y="54" text-anchor="middle" class="s">mới &lt; 1 s</text>
+    <line x1="540" y1="82" x2="588" y2="82" class="ln" marker-end="url(#ah7)"/>
+    <text x="564" y="40" text-anchor="middle" class="s">còn</text>
+    <text x="564" y="54" text-anchor="middle" class="s">&lt; 0,6 m</text>
+    <line x1="700" y1="82" x2="750" y2="82" class="ln" marker-end="url(#ah7)"/>
+    <text x="725" y="40" text-anchor="middle" class="s">còn &lt; 1 cm</text>
+    <text x="725" y="54" text-anchor="middle" class="s">hoặc tiếp xúc</text>
+    <line x1="450" y1="104" x2="450" y2="196" class="ln-bad" marker-end="url(#ah7b)"/>
+    <text x="458" y="152" class="s tbad">mất dấu &gt; 1 s</text>
+    <line x1="340" y1="198" x2="340" y2="106" class="ln" marker-end="url(#ah7)"/>
+    <text x="332" y="146" text-anchor="end" class="s">lùi đủ 0,5 m → thử lại</text>
+    <text x="332" y="162" text-anchor="end" class="s">(tối đa 2 lần)</text>
+    <line x1="200" y1="104" x2="200" y2="196" class="ln-bad" marker-end="url(#ah7b)"/>
+    <text x="192" y="152" text-anchor="end" class="s tbad">5 s không thấy vật</text>
+    <line x1="320" y1="220" x2="218" y2="220" class="ln-bad" marker-end="url(#ah7b)"/>
+    <text x="269" y="212" text-anchor="middle" class="s tbad">hết lượt</text>
+    <text x="480" y="278" text-anchor="middle" class="s">Từ mọi trạng thái: ~/cancel → IDLE · tổng quá 60 s → FAILED</text>
+  </svg>
+  </div>
+  <figcaption>Máy trạng thái trong <code>core/control.py</code>. Ở <b>BLIND</b>, robot đi theo pose do Kalman giữ, tốc độ tối đa 0,08 m/s, và không còn đòi phép đo mới. <b>DOCKED</b> khi quãng còn lại dọc trục dock dưới 1 cm, hoặc khi topic <code>~/contact</code> báo đã chạm. Trạng thái hiện tại được phát trên <code>~/state</code>.</figcaption>
+</figure>
+
+<h3 id="k-nav2"><span class="num">1.12</span>Hai cách tích hợp: có Nav2 hoặc không</h3>
+<p>Estimator chỉ phát pose, không quan tâm ai dùng nó. Bạn chọn một trong hai đường:</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 300" role="img" aria-label="So sánh hai đường: đường A dùng Nav2 docking_server nhận action DockRobot, tự đi tới staging pose, chờ pose vật, điều khiển graceful, kiểm tra đã dock; đường B dùng docking_controller nhận service start, chạy qua WAIT_DETECTION, APPROACH, BLIND, DOCKED.">
+    <defs><marker id="ah8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+    <rect x="16" y="104" width="176" height="92" rx="10" class="box-c"/>
+    <text x="104" y="134" text-anchor="middle" class="m b">pose_estimator</text>
+    <text x="104" y="156" text-anchor="middle" class="ms">detected_dock_pose</text>
+    <text x="104" y="174" text-anchor="middle" class="s">PoseStamped @ odom</text>
+    <path d="M192 136 C 214 136, 214 76, 236 76" class="ln" marker-end="url(#ah8)"/>
+    <path d="M192 164 C 214 164, 214 226, 236 226" class="ln" marker-end="url(#ah8)"/>
+    <rect x="238" y="14" width="706" height="124" rx="12" class="lane"/>
+    <text x="254" y="38" class="b">Đường A · robot đã có Nav2</text>
+    <text x="458" y="38" class="ms">nav2_docking.launch.py</text>
+    <rect x="254" y="60" width="132" height="44" rx="8" class="box-a"/>
+    <text x="320" y="87" text-anchor="middle">action DockRobot</text>
+    <rect x="404" y="60" width="132" height="44" rx="8" class="box"/>
+    <text x="470" y="87" text-anchor="middle">tới staging pose</text>
+    <rect x="554" y="60" width="118" height="44" rx="8" class="box"/>
+    <text x="613" y="87" text-anchor="middle">chờ pose vật</text>
+    <rect x="690" y="60" width="140" height="44" rx="8" class="box"/>
+    <text x="760" y="87" text-anchor="middle">graceful controller</text>
+    <rect x="848" y="60" width="80" height="44" rx="8" class="box-ok"/>
+    <text x="888" y="87" text-anchor="middle">docked?</text>
+    <line x1="386" y1="82" x2="402" y2="82" class="ln" marker-end="url(#ah8)"/>
+    <line x1="536" y1="82" x2="552" y2="82" class="ln" marker-end="url(#ah8)"/>
+    <line x1="672" y1="82" x2="688" y2="82" class="ln" marker-end="url(#ah8)"/>
+    <line x1="830" y1="82" x2="846" y2="82" class="ln" marker-end="url(#ah8)"/>
+    <text x="254" y="126" class="s">Nav2 tự lo cả phần đi tới staging pose; plugin SimpleNonChargingDock đọc pose ngoài.</text>
+    <rect x="238" y="162" width="706" height="124" rx="12" class="lane"/>
+    <text x="254" y="186" class="b">Đường B · robot không chạy Nav2</text>
+    <text x="490" y="186" class="ms">docking.launch.py</text>
+    <rect x="254" y="208" width="132" height="44" rx="8" class="box-a"/>
+    <text x="320" y="235" text-anchor="middle">service ~/start</text>
+    <rect x="404" y="208" width="132" height="44" rx="8" class="box"/>
+    <text x="470" y="235" text-anchor="middle" class="m">WAIT_DETECTION</text>
+    <rect x="554" y="208" width="118" height="44" rx="8" class="box-c"/>
+    <text x="613" y="235" text-anchor="middle" class="m">APPROACH</text>
+    <rect x="690" y="208" width="140" height="44" rx="8" class="box-a"/>
+    <text x="760" y="235" text-anchor="middle" class="m">BLIND</text>
+    <rect x="848" y="208" width="80" height="44" rx="8" class="box-ok"/>
+    <text x="888" y="235" text-anchor="middle" class="m">DOCKED</text>
+    <line x1="386" y1="230" x2="402" y2="230" class="ln" marker-end="url(#ah8)"/>
+    <line x1="536" y1="230" x2="552" y2="230" class="ln" marker-end="url(#ah8)"/>
+    <line x1="672" y1="230" x2="688" y2="230" class="ln" marker-end="url(#ah8)"/>
+    <line x1="830" y1="230" x2="846" y2="230" class="ln" marker-end="url(#ah8)"/>
+    <text x="254" y="274" class="s">Robot phải được đưa tới gần vật trước (bằng hệ thống của bạn); node chỉ lo đoạn cuối.</text>
+  </svg>
+  </div>
+  <figcaption>Cùng một pose, hai bên sử dụng. <b>Đường A</b> phù hợp khi robot đã có Nav2: <code>config/nav2_docking.yaml</code> dùng plugin <code>opennav_docking::SimpleNonChargingDock</code> với <code>use_external_detection_pose: true</code> và tắt bộ lọc của Nav2 (<code>filter_coef: 0.0</code>), vì pose đã được lọc Kalman. <b>Đường B</b> dành cho robot tự viết hoặc điều khiển từ RCS/FMS: chỉ cần gọi một service.</figcaption>
+</figure>
+
+<h3 id="k-perf"><span class="num">1.13</span>Hiệu năng</h3>
+<p>Mục tiêu thiết kế là chạy được trên CPU cỡ Raspberry Pi 5, không GPU, chỉ dùng numpy và scipy cài từ apt. Đo trên cảnh của mục 1.2 với tham số mặc định:</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f10-timing-light.webp" width="1283" height="400" alt="Thời gian xử lý một khung: chế độ bám tổng 8 ms gồm tiền xử lý 2 ms và ICP 5 ms; chế độ tìm kiếm tổng 97 ms gồm tiền xử lý 2 ms, tìm kiếm 31 ms và ICP top-5 63 ms." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f10-timing-dark.webp" width="1283" height="400" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Thời gian trung vị trên máy dev (Intel i7-14700F). Chế độ bám chạy gần như mọi khung, khoảng <b>8 ms</b>, còn rất nhiều dư địa so với ngân sách 40 ms dành cho CPU yếu. Tìm kiếm toàn cục (97 ms) chỉ chạy khi mất dấu. Con số dao động vài ms giữa các lần đo tùy tải máy. Trên robot thật, chạy <code>ros2 run camera3d_docking benchmark</code> để đo lại.</figcaption>
+</figure>
+<p>Benchmark tích hợp sẵn (<code>tools/benchmark.py</code>) chạy 40 tình huống: pallet ở 1,0–2,5 m, yaw ±30°, có nhiễu stereo. Kết quả trên máy dev: <strong>40/40 OK</strong>, sai số vị trí trung vị 1,1 mm (phân vị 95: 3,7 mm), sai số yaw trung vị 0,04° (phân vị 95: 0,15°). Mục tiêu của thiết kế là trung vị ≤ 1 cm / 0,5°.</p>
+</section>
+
+<!-- ======================================================================= PHẦN 2 -->
+<section id="p2">
+<div class="part-head"><p class="eyebrow">Phần 2</p><h2>Cách sử dụng chương trình</h2></div>
+<p class="intro">Phần này đi từ máy dev tới robot thật: nạp môi trường, kiểm tra, tạo template, chạy node, đọc trạng thái và ra lệnh docking. Mọi lệnh chạy từ thư mục gốc dự án sau khi <code>source env.sh</code>. Checklist đưa lên robot thật (B1–B10, có tiêu chí nghiệm thu) nằm trong <code>docs/HUONG_DAN_TRIEN_KHAI.md</code>; các mục dưới đây giải thích những bước đó bằng hình.</p>
+
+<h3 id="u-tree"><span class="num">2.1</span>Thư mục dự án</h3>
+<p>Ba thư mục bạn sẽ mở nhiều nhất là <code>config/</code> (tham số), <code>launch/</code> (lệnh khởi chạy) và <code>templates/</code> (mẫu vật).</p>
+<figure class="fig">
+  <div class="term"><div class="bar"><i></i><i></i><i></i><span>Docking using Camera 3D/</span></div><pre>Docking using Camera 3D/
+├── env.sh                         <span class="d"># luôn source file này trước khi làm việc</span>
+├── README.md
+├── docs/HUONG_DAN_TRIEN_KHAI.md   <span class="d"># checklist B1–B10 cho robot thật</span>
+├── docs/superpowers/              <span class="d"># spec thiết kế + kế hoạch triển khai</span>
+├── tools/                         <span class="d"># cài ROS 2 Jazzy, ghim ứng dụng lên taskbar</span>
+├── logs/                          <span class="d"># log của test E2E</span>
+└── ros2_ws/src/
+    ├── camera3d_docking/
+    │   ├── camera3d_docking/core/   <span class="d"># thuật toán, chỉ numpy + scipy</span>
+    │   ├── camera3d_docking/ros/    <span class="d"># node pose_estimator, docking_controller, cloud_saver</span>
+    │   ├── camera3d_docking/tools/  <span class="d"># make_template, benchmark</span>
+    │   ├── <span class="y">config/</span>      <span class="d"># estimator.yaml · controller.yaml · nav2_docking.yaml</span>
+    │   ├── <span class="y">launch/</span>      <span class="d"># estimator · docking · nav2_docking (.launch.py)</span>
+    │   ├── <span class="y">templates/</span>   <span class="d"># euro_pallet.npz · rack.npz · v_dock.npz</span>
+    │   ├── rviz/docking.rviz
+    │   └── test/        <span class="d"># 102 test (pytest)</span>
+    └── camera3d_docking_sim/
+        ├── worlds/ · models/docking_bot/ · config/bridge.yaml
+        ├── launch/sim.launch.py
+        └── scripts/run_e2e.sh</pre></div>
+  <figcaption>Cấu trúc thư mục. Màu vàng là ba thư mục hay phải sửa. Thư mục <code>references/</code> chứa 6 repo tham khảo, chỉ để đọc.</figcaption>
+</figure>
+
+<h3 id="u-build"><span class="num">2.2</span>Build và nạp môi trường</h3>
+<ol class="steps">
+  <li><p><strong>Nạp môi trường</strong> mỗi khi mở terminal mới. File này source ROS 2 Jazzy, source workspace đã build và đặt <code>PYTHONNOUSERSITE=1</code>.</p>
+    <div class="code"><pre>cd ~/Desktop/"Docking using Camera 3D" &amp;&amp; source env.sh</pre></div></li>
+  <li><p><strong>Build</strong> lần đầu, hoặc khi thêm file mới (launch, config, template). Sửa code Python thì không cần build lại, nhờ <code>--symlink-install</code>.</p>
+    <div class="code"><pre>cd ros2_ws &amp;&amp; colcon build --symlink-install &amp;&amp; source install/setup.bash</pre></div></li>
+</ol>
+<figure class="fig">
+  <div class="term"><div class="bar"><i></i><i></i><i></i><span>terminal</span></div><pre><span class="p">$</span> source env.sh
+[docking3d] ROS 2 jazzy + workspace đã nạp (PYTHONNOUSERSITE=1)</pre></div>
+  <figcaption>Dòng báo nạp môi trường thành công. Không thấy dòng này thì các lệnh <code>ros2 run camera3d_docking …</code> sẽ báo không tìm thấy gói.</figcaption>
+</figure>
+<div class="note warn">
+  <span class="lbl">Vì sao cần PYTHONNOUSERSITE=1</span>
+  <p>Máy dev có numpy 2.x cài bằng pip trong <code>~/.local</code>. Bản này xung đột với scipy cài từ apt mà ROS 2 Jazzy dùng (lỗi kiểu <code>dtype size changed</code>). Biến môi trường này bảo Python bỏ qua <code>~/.local</code>. Các node của dự án tự đặt biến này nếu bạn quên, còn các công cụ khác như <code>rqt</code> thì không.</p>
+</div>
+<p>Session phát triển cũng đã ghim sẵn 6 ứng dụng lên taskbar của Ubuntu, gồm cả nút mở mô phỏng:</p>
+<figure class="fig" style="max-width:420px">
+  <img src="img/s05-launchers.webp" width="720" height="760" alt="Sáu biểu tượng trên taskbar: RViz2, rqt, Gazebo, PlotJuggler, CloudCompare và Docking Sim." loading="lazy" decoding="async">
+  <figcaption>Ảnh chụp thanh taskbar trên máy dev. <b>Docking Sim</b> mở toàn bộ mô phỏng (Phần 3).</figcaption>
+</figure>
+
+<h3 id="u-test"><span class="num">2.3</span>Chạy test và benchmark</h3>
+<p>Hai lệnh dưới đây là cách nhanh nhất để biết cài đặt có đúng không, trên máy dev cũng như trên robot:</p>
+<div class="code"><pre>cd ros2_ws/src/camera3d_docking &amp;&amp; python3 -m pytest -q</pre></div>
+<div class="code"><pre>ros2 run camera3d_docking benchmark --quick</pre></div>
+<figure class="fig">
+  <div class="term"><div class="bar"><i></i><i></i><i></i><span>kết quả chạy thật, 17/11/2026</span></div><pre><span class="p">$</span> python3 -m pytest -q
+........................................................................ [ 70%]
+..............................                                           [100%]
+<span class="d">real 0m29s   (102 dấu chấm = 102 test đạt)</span>
+
+<span class="p">$</span> ros2 run camera3d_docking benchmark --quick
+Khởi tạo template (19678 điểm) + estimator: 0.91 s
+    x     y   yaw | trạng thái  Δpos(cm) Δyaw(°) | tìm(ms) bám(ms)
+ 1.20  0.00   -20 | <span class="g">OK</span>              0.08    0.02 |   152.6    12.1
+ 1.20  0.00     0 | <span class="g">OK</span>              0.07    0.03 |    80.0    13.2
+ 1.20  0.00    20 | <span class="g">OK</span>              0.06    0.00 |    68.7    11.9
+ 2.00  0.00   -20 | <span class="g">OK</span>              0.24    0.02 |   105.0    11.6
+ 2.00  0.00     0 | <span class="g">OK</span>              0.13    0.03 |    96.1    10.3
+ 2.00  0.00    20 | <span class="g">OK</span>              0.19    0.01 |   113.8    11.0
+----------------------------------------------------------------
+Thành công: <span class="g">6/6</span>
+Sai số vị trí : trung vị 0.11 cm, P95 0.23 cm
+Sai số hướng  : trung vị 0.02°,  P95 0.03°
+Thời gian     : tìm kiếm TB 102.7 ms, bám TB 11.7 ms / khung</pre></div>
+  <figcaption>Kết quả thật trên máy dev. Mỗi dấu chấm là một test đạt (chữ F là hỏng). Benchmark đặt pallet ở 1,2 m và 2,0 m, xoay −20°/0°/+20°, rồi đo sai số và thời gian; bỏ <code>--quick</code> để chạy đủ 40 tình huống. Trên robot thật, cột <b>bám(ms)</b> nên dưới 50 ms.</figcaption>
+</figure>
+
+<h3 id="u-template"><span class="num">2.4</span>Tạo template cho vật</h3>
+<p>Ba template có sẵn dùng được ngay nếu vật thật đúng kích thước chuẩn. Khi vật khác đi, tạo template mới bằng <code>make_template</code>:</p>
+<div class="tbl"><table>
+  <thead><tr><th>Trường hợp</th><th>Lệnh (sau <code>ros2 run camera3d_docking</code>)</th></tr></thead>
+  <tbody>
+    <tr><td>Pallet khối, đo kích thước thật</td><td><code>make_template pallet --depth 1.2 --width 0.8 --block-widths 0.10 0.145 0.10 -o pallet_kho_A.npz</code></td></tr>
+    <tr><td>Kệ một khoang</td><td><code>make_template rack --bay-width 1.0 --depth 0.9 --beam-levels 0.15 1.2 -o rack_A.npz</code></td></tr>
+    <tr><td>Trạm sạc rãnh chữ V</td><td><code>make_template vdock --opening 0.5 --depth 0.2 --height 0.25 -o vdock.npz</code></td></tr>
+    <tr><td>Từ file CAD (mặt trước quay về −x)</td><td><code>make_template from-mesh vat.stl --scale 0.001 -o vat.npz</code> <span class="muted">(scale 0.001 khi CAD tính bằng mm)</span></td></tr>
+    <tr><td>Xuất để xem bằng CloudCompare</td><td><code>make_template export-pcd vat.npz vat.pcd</code></td></tr>
+  </tbody>
+</table></div>
+<p><strong>Quét thực tế</strong> cho template chính xác nhất, vì nó mang đúng đặc tính nhiễu của camera thật. Lệnh <code>from-cloud</code> gộp nhiều cloud chụp từ <em>cùng một</em> vị trí robot, nên bạn chỉ cần đo một pose:</p>
+<div class="code"><pre>ros2 run camera3d_docking cloud_saver --ros-args -r points:=&lt;topic cloud&gt; -p count:=5 -p output_dir:=scan1</pre></div>
+<div class="code"><pre>ros2 run camera3d_docking make_template from-cloud scan1/*.pcd --object-pose 1.20 0.02 1.5 --camera-pos 0.25 0 0.30 -o vat.npz</pre></div>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 250" role="img" aria-label="Quy trình quét template: robot đứng ở vị trí đo được trước vật, cloud_saver lưu 5 cloud, make_template from-cloud gộp thành template với object-pose đo bằng thước hoặc AprilTag, export-pcd để kiểm tra bằng CloudCompare.">
+    <defs>
+      <marker id="ah9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="ah9a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+    </defs>
+    <rect x="16" y="20" width="270" height="56" rx="8" class="box-c"/>
+    <text x="30" y="43" class="m b">1 · cloud_saver</text>
+    <text x="30" y="63" class="s">lưu 5 cloud → scan1/cloud_*.pcd</text>
+    <rect x="16" y="98" width="270" height="56" rx="8" class="box-a"/>
+    <text x="30" y="121" class="m b">2 · make_template from-cloud</text>
+    <text x="30" y="141" class="s">--object-pose X Y YAW → vat.npz</text>
+    <rect x="16" y="176" width="270" height="56" rx="8" class="box"/>
+    <text x="30" y="199" class="m b">3 · export-pcd</text>
+    <text x="30" y="219" class="s">mở bằng CloudCompare để kiểm tra</text>
+    <line x1="150" y1="76" x2="150" y2="96" class="ln" marker-end="url(#ah9)"/>
+    <line x1="150" y1="154" x2="150" y2="174" class="ln" marker-end="url(#ah9)"/>
+    <path d="M468 126 L700 52 L700 206 Z" class="fov"/>
+    <g transform="translate(440 126)"><rect x="-30" y="-22" width="56" height="44" rx="6" class="robot"/><path d="M10 -9 L23 0 L10 9" class="ln"/><circle cx="20" cy="0" r="3.4" class="fc"/></g>
+    <rect x="640" y="76" width="170" height="100" class="pallet"/>
+    <path d="M640 96 H810 M640 116 H810 M640 136 H810 M640 156 H810" class="ln-faint"/>
+    <line x1="640" y1="126" x2="692" y2="126" class="ln-a" marker-end="url(#ah9a)"/>
+    <line x1="640" y1="126" x2="640" y2="88" class="ln-a" marker-end="url(#ah9a)"/>
+    <line x1="440" y1="214" x2="638" y2="214" class="ln" marker-start="url(#ah9)" marker-end="url(#ah9)"/>
+    <text x="540" y="236" text-anchor="middle" class="ms">--object-pose 1.20 0.02 1.5 (đo bằng thước / AprilTag)</text>
+    <text x="440" y="96" text-anchor="middle" class="ms">--camera-pos 0.25 0 0.30</text>
+    <text x="725" y="196" text-anchor="middle" class="s">vật thật (gốc: tâm mặt trước)</text>
+    <text x="850" y="40" text-anchor="middle" class="s">nhìn từ trên</text>
+  </svg>
+  </div>
+  <figcaption>Quét template thực tế. <b>Trái</b>: ba lệnh lần lượt. <b>Phải</b>: robot đứng yên trước vật 1,0–1,5 m; <code>--object-pose</code> là pose của gốc frame vật (tâm mặt trước, trên sàn) trong <code>base_link</code>, đo bằng thước hoặc AprilTag. Sai số đo pose sẽ đi thẳng vào template, nên đo cẩn thận. Kiểm tra cuối cùng: trong RViz, đám điểm xanh <code>~/aligned_template</code> phải phủ khít lên cloud thật.</figcaption>
+</figure>
+
+<h3 id="u-estimator"><span class="num">2.5</span>Chạy với camera thật</h3>
+<p>Trên robot thật cần 4 thứ chạy cùng lúc. Mở 4 terminal (đã <code>source env.sh</code>) theo thứ tự:</p>
+<figure class="fig">
+  <div class="cols" style="margin:0">
+    <div class="term"><div class="bar"><span>T1 · driver camera (ví dụ RealSense)</span></div><pre>ros2 launch realsense2_camera rs_launch.py \
+  depth_module.depth_profile:=424x240x15 \
+  pointcloud.enable:=true \
+  pointcloud.ordered_pc:=true</pre></div>
+    <div class="term"><div class="bar"><span>T2 · TF tĩnh base_link → camera</span></div><pre>ros2 run tf2_ros static_transform_publisher \
+  --x 0.25 --y 0 --z 0.30 --pitch 0.1745 \
+  --frame-id base_link \
+  --child-frame-id camera_link</pre></div>
+    <div class="term"><div class="bar"><span>T3 · estimator + controller</span></div><pre>ros2 launch camera3d_docking docking.launch.py \
+  points_topic:=/camera/camera/depth/color/points</pre></div>
+    <div class="term"><div class="bar"><span>T4 · RViz để quan sát</span></div><pre>rviz2 -d ros2_ws/src/camera3d_docking/rviz/docking.rviz</pre></div>
+  </div>
+  <figcaption>Bốn terminal khi chạy trên robot. <b>T1</b>: tên tham số khác nhau giữa các phiên bản driver, kiểm tra bằng <code>ros2 launch &lt;gói&gt; &lt;file&gt; --show-args</code>. <b>T2</b>: số đo thật của camera trên robot của bạn (vị trí và góc chúc, đơn vị m và rad). <b>T3</b>: chỉ cần estimator thì dùng <code>estimator.launch.py</code>. <b>T4</b>: file RViz mặc định đọc topic <code>/camera/points</code>; với camera thật, đổi topic của mục “Camera cloud” cho đúng.</figcaption>
+</figure>
+<p>Khi mọi thứ chạy, sơ đồ node trông như dưới đây. Ảnh chụp từ <code>rqt_graph</code> trong mô phỏng; trên robot thật, vị trí của <code>ros_gz_bridge</code> là driver camera (phát cloud) và đế robot (nhận <code>cmd_vel</code>):</p>
+<figure class="fig shot">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img src="img/s04-rqt-graph.webp" width="1622" height="214" alt="rqt_graph: ros_gz_bridge phát /camera/points tới pose_estimator; pose_estimator phát /detected_dock_pose tới docking_controller và /pose_estimator/aligned_template; docking_controller phát /cmd_vel về ros_gz_bridge." loading="lazy" decoding="async">
+  </button>
+  <figcaption>Vòng dữ liệu thật đo bằng <code>rqt_graph</code> (chế độ Nodes/Topics, ẩn tf): cloud vào <code>pose_estimator</code>, pose ra <code>/detected_dock_pose</code>, <code>docking_controller</code> biến pose thành <code>/cmd_vel</code>. Ô chữ nhật là topic, ô bầu dục là node.</figcaption>
+</figure>
+
+<h3 id="u-status"><span class="num">2.6</span>Đọc trạng thái của estimator</h3>
+<p>Mọi thứ estimator biết đều nằm trong topic <code>/pose_estimator/status</code>, dạng JSON, mỗi khung một bản. Xem bằng:</p>
+<div class="code"><pre>ros2 topic echo --field data /pose_estimator/status</pre></div>
+<figure class="fig">
+  <div class="cols" style="margin:0;align-items:start">
+    <div class="term"><div class="bar"><span>một bản tin thật khi đang bám pallet</span></div><pre>{
+ <span class="y">①</span> "status": <span class="g">"OK"</span>,  "message": "",
+ <span class="y">②</span> "mode": "track",  "accepted": true,
+ <span class="y">③</span> "n_points": 394,
+ <span class="y">④</span> "quality": {
+     "coverage": 0.7032, "inlier_ratio": 0.9924,
+     "rmse": 0.0052, "sigma_xy": 0.0035,
+     "sigma_yaw_deg": 0.3489,
+     "observability": 0.0285,
+     "score": 0.6978, "iterations": 8.0 },
+ <span class="y">⑤</span> "timings_ms": {
+     "preprocess": 3.4, "icp": 5.8, "total": 9.3 },
+ <span class="y">⑥</span> "floor": { "valid": true,
+     "tilt_deg": 0.0075, "dz": 0.00002 },
+ <span class="y">⑦</span> "kalman": { "x": 1.9258, "y": 0.1539,
+     "yaw_deg": 14.97, "sigma_xy": 0.0036 }
+}</pre></div>
+    <div class="small">
+      <p><b>①</b> Trạng thái; khi khác <code>OK</code>, <code>message</code> ghi lý do bằng tiếng Việt.</p>
+      <p><b>②</b> <code>track</code> = bám từ pose dự đoán, <code>search</code> = vừa tìm kiếm toàn cục. <code>accepted</code> = Kalman đã nhận phép đo.</p>
+      <p><b>③</b> Số điểm trong ROI sau voxel. Dưới 50 là <code>NO_POINTS</code>.</p>
+      <p><b>④</b> Các chỉ số của cổng chất lượng (mục 1.9). Ở đây đều đạt xa ngưỡng.</p>
+      <p><b>⑤</b> Thời gian từng khâu của khung này (ms).</p>
+      <p><b>⑥</b> Cân bằng sàn: độ nghiêng sàn ước lượng. <code>tilt_deg</code> &gt; 1° nghĩa là TF camera khai sai pitch/roll.</p>
+      <p><b>⑦</b> Pose vật trong <code>odom</code> sau Kalman (m, độ) và độ bất định. Ở đây sai so với vị trí thật dưới 1 mm và 0,03°.</p>
+    </div>
+  </div>
+  <figcaption>Bản tin <code>~/status</code> chụp từ mô phỏng khi robot đang tiến vào pallet. Cách nhanh để vẽ đồ thị các trường này theo thời gian là mở PlotJuggler (có trên taskbar) và kéo topic <code>/pose_estimator/status</code> vào.</figcaption>
+</figure>
+
+<h3 id="u-dock"><span class="num">2.7</span>Docking không cần Nav2</h3>
+<ol class="steps">
+  <li><p><strong>Khởi chạy</strong> estimator và controller (đưa robot tới trước vật trước, cách 1–2 m):</p>
+    <div class="code"><pre>ros2 launch camera3d_docking docking.launch.py points_topic:=&lt;topic cloud&gt; cmd_vel_topic:=/cmd_vel</pre></div></li>
+  <li><p><strong>Ra lệnh docking</strong>, rồi theo dõi trạng thái ở terminal khác:</p>
+    <div class="code"><pre>ros2 service call /docking_controller/start std_srvs/srv/Trigger</pre></div>
+    <div class="code"><pre>ros2 topic echo /docking_controller/state</pre></div></li>
+  <li><p><strong>Dừng giữa chừng</strong> nếu cần (robot dừng ngay, về <code>IDLE</code>):</p>
+    <div class="code"><pre>ros2 service call /docking_controller/cancel std_srvs/srv/Trigger</pre></div></li>
+</ol>
+<figure class="fig">
+  <div class="term"><div class="bar"><i></i><i></i><i></i><span>log thật của một lần docking trong mô phỏng</span></div><pre><span class="p">$</span> ros2 service call /docking_controller/start std_srvs/srv/Trigger
+std_srvs.srv.Trigger_Response(success=True, message='Bắt đầu docking')
+
+<span class="d"># log của node docking_controller:</span>
+[docking_controller]: [WAIT_DETECTION -> APPROACH] Đang tiếp cận
+[docking_controller]: [APPROACH -> BLIND] Vào vùng mù — bám theo pose giữ trong odom
+[docking_controller]: [BLIND -> DOCKED] <span class="g">Đã dock (còn 0.9 cm)</span>
+
+<span class="p">$</span> ros2 topic echo --once /docking_controller/state
+data: 'DOCKED: Đã dock (còn 0.9 cm)'</pre></div>
+  <figcaption>Ba dòng log ứng với ba lần đổi trạng thái của máy trạng thái (mục 1.11). Trong lần chạy này, BLIND bắt đầu sau 5,5 s và DOCKED sau 14,1 s kể từ lúc gọi <code>start</code>. Hệ thống RCS/FMS của bạn chỉ cần gọi 2 service và đọc topic <code>~/state</code> như trên.</figcaption>
+</figure>
+<div class="note tip">
+  <span class="lbl">An toàn</span>
+  <p>Chương trình không tránh vật cản. Trên robot thật luôn cần thêm nút dừng khẩn, laser an toàn hoặc collision monitor, giới hạn tốc độ. Nên có cảm biến tiếp xúc phát lên <code>/docking_controller/contact</code> (<code>std_msgs/Bool</code>): khi chạm, robot dừng và báo <code>DOCKED</code> ngay.</p>
+</div>
+
+<h3 id="u-nav2"><span class="num">2.8</span>Docking với Nav2</h3>
+<p>Khi robot đã có Nav2, để <code>docking_server</code> của Nav2 lo cả hai pha. Bạn khai báo vị trí gần đúng của dock trên bản đồ trong <code>config/nav2_docking.yaml</code>, rồi gửi action:</p>
+<div class="code"><pre>ros2 launch camera3d_docking nav2_docking.launch.py points_topic:=&lt;topic cloud&gt;</pre></div>
+<div class="code"><pre>ros2 action send_goal /dock_robot opennav_docking_msgs/action/DockRobot "{use_dock_id: true, dock_id: pallet_1}"</pre></div>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 230" role="img" aria-label="Hình học docking với Nav2: Nav2 đưa robot tới staging pose cách mặt vật 1,6 m; docking_server dùng pose từ camera để đưa robot tới điểm dừng cách mặt vật 0,35 m.">
+    <defs>
+      <marker id="ah10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="ah10a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+    </defs>
+    <line x1="60" y1="116" x2="820" y2="116" class="ln-faint dash"/>
+    <rect x="820" y="72" width="124" height="88" class="pallet"/>
+    <text x="882" y="62" text-anchor="middle" class="ms">docks.pallet_1.pose</text>
+    <text x="882" y="120" text-anchor="middle" class="s">vật</text>
+    <path d="M108 196 C 250 196, 320 116, 444 116" class="ln dash" marker-end="url(#ah10)"/>
+    <g transform="translate(84 196)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="robot"/><path d="M8 -8 L19 0 L8 8" class="ln"/></g>
+    <text x="240" y="222" text-anchor="middle" class="s">pha 1: Nav2 điều hướng trên bản đồ</text>
+    <g transform="translate(468 116)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="robot"/><path d="M8 -8 L19 0 L8 8" class="ln"/><circle cx="17" cy="0" r="2.6" class="fc"/></g>
+    <path d="M492 116 H719" class="ln-a" marker-end="url(#ah10a)"/>
+    <g transform="translate(743 116)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="ghost"/></g>
+    <text x="606" y="106" text-anchor="middle" class="s ta">pha 2: docking_server + pose camera</text>
+    <line x1="468" y1="30" x2="468" y2="96" class="ln-faint"/>
+    <line x1="743" y1="140" x2="743" y2="190" class="ln-faint"/>
+    <line x1="820" y1="30" x2="820" y2="190" class="ln-faint"/>
+    <line x1="470" y1="38" x2="818" y2="38" class="ln" marker-start="url(#ah10)" marker-end="url(#ah10)"/>
+    <text x="644" y="30" text-anchor="middle" class="ms">staging_x_offset = −1.6 m</text>
+    <line x1="745" y1="180" x2="818" y2="180" class="ln" marker-start="url(#ah10)" marker-end="url(#ah10)"/>
+    <text x="781" y="204" text-anchor="middle" class="ms">−0.35 m</text>
+    <text x="781" y="218" text-anchor="middle" class="s">external_detection_translation_x</text>
+    <text x="468" y="150" text-anchor="middle" class="s">staging pose</text>
+    <text x="743" y="88" text-anchor="middle" class="s ta">điểm dừng</text>
+  </svg>
+  </div>
+  <figcaption>Ý nghĩa các tham số chính trong <code>nav2_docking.yaml</code>. <code>docks.pallet_1.pose</code> là vị trí <em>gần đúng</em> của mặt vật trên bản đồ (sai vài chục cm vẫn được). Nav2 đưa robot tới <b>staging pose</b> cách mặt vật 1,6 m, tức 1,25 m trước điểm dừng; trong mô phỏng, quãng tiếp cận 1,25 m cho yaw cuối 0,93° so với 1,77° khi chỉ có 0,95 m. Từ đó plugin <code>SimpleNonChargingDock</code> đọc <code>detected_dock_pose</code> và lái robot tới điểm dừng cách mặt vật 0,35 m.</figcaption>
+</figure>
+<div class="note">
+  <span class="lbl">Mức độ đã kiểm chứng</span>
+  <p>Đường B (bộ điều khiển riêng) đã chạy end-to-end trong Gazebo. Đường A (Nav2) mới được kiểm tra tên tham số với thư viện <code>opennav_docking</code> đã cài; chưa chạy end-to-end vì cần bản đồ và hệ định vị. Khi tích hợp, hãy thử trong mô phỏng hoặc ở tốc độ thấp trước.</p>
+</div>
+
+<h3 id="u-params"><span class="num">2.9</span>Tham số hay chỉnh</h3>
+<p>Phần lớn tham số giữ mặc định là đủ. Những tham số dưới đây gắn với robot và vật cụ thể của bạn:</p>
+<div class="tbl"><table>
+  <thead><tr><th>Tham số (file)</th><th>Mặc định</th><th>Khi nào chỉnh</th></tr></thead>
+  <tbody>
+    <tr><td><code>template_path</code> (estimator)</td><td><code>euro_pallet.npz</code></td><td>Đổi loại vật; tên file trong <code>templates/</code> hoặc đường dẫn tuyệt đối.</td></tr>
+    <tr><td><code>roi.min</code>, <code>roi.max</code> (estimator)</td><td>[0.25, −1.5, 0.03] → [3.5, 1.5, 2.0]</td><td>Thu hẹp khi có vật giống nhau đứng cạnh (<code>AMBIGUOUS</code>), hoặc để giảm CPU.</td></tr>
+    <tr><td><code>use_expected_pose</code>, <code>expected_pose</code></td><td><code>false</code>, [1.2, 0, 0]</td><td>Bật khi biết trước vật nằm đâu so với robot (ví dụ đã đứng ở staging): khởi tạo nhanh, ít nhầm.</td></tr>
+    <tr><td><code>cloud_stride</code>, <code>voxel_size</code></td><td>2; 0.02 m</td><td>Tăng lên 3; 0.025 khi CPU yếu (B10).</td></tr>
+    <tr><td><code>min_points_per_voxel</code></td><td>1</td><td>Đặt 2–3 để lọc “flying pixels” của camera stereo.</td></tr>
+    <tr><td><code>dock_offset_x</code> (controller)</td><td>−0.35 m</td><td>Vị trí dừng của <code>base_link</code> so với mặt vật: −(khoảng base_link tới mũi xe + khe hở). Dương nếu càng nâng đi vào pallet.</td></tr>
+    <tr><td><code>backward</code> (controller)</td><td><code>false</code></td><td><code>true</code> khi lùi vào (xe nâng có càng và camera phía sau).</td></tr>
+    <tr><td><code>law.v_max</code> (controller)</td><td>0.2 m/s</td><td>Robot thật: bắt đầu với 0.1 m/s.</td></tr>
+    <tr><td><code>fsm.blind_zone</code>, <code>blind_zone_distance</code></td><td>0.6 m; 0.6 m</td><td>Ít nhất bằng tầm gần nhất của camera + 0,2 m.</td></tr>
+  </tbody>
+</table></div>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 250" role="img" aria-label="Các khoảng cách trên trục dock: điểm dừng cách mặt vật 0,35 m; controller vào BLIND khi còn 0,6 m tới điểm dừng, tức 0,95 m trước mặt vật; estimator ngừng đo và giữ pose khi robot cách mặt vật 0,6 m.">
+    <defs><marker id="ah11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+    <line x1="110" y1="118" x2="880" y2="118" class="ln"/>
+    <rect x="880" y="78" width="66" height="80" class="pallet"/>
+    <text x="913" y="122" text-anchor="middle" class="s">vật</text>
+    <g transform="translate(128 118)"><rect x="-22" y="-15" width="44" height="30" rx="6" class="robot"/><path d="M8 -8 L19 0 L8 8" class="ln"/></g>
+    <line x1="433" y1="96" x2="433" y2="140" class="ln"/>
+    <line x1="598" y1="96" x2="598" y2="140" class="ln"/>
+    <line x1="716" y1="88" x2="716" y2="148" class="ln-a"/>
+    <text x="433" y="160" text-anchor="middle" class="ms">−0.95</text>
+    <text x="598" y="160" text-anchor="middle" class="ms">−0.60</text>
+    <text x="716" y="160" text-anchor="middle" class="ms ta">−0.35</text>
+    <text x="880" y="174" text-anchor="middle" class="ms">0 (mặt vật)</text>
+    <text x="716" y="80" text-anchor="middle" class="s ta b">điểm dừng (dock_offset_x)</text>
+    <text x="128" y="160" text-anchor="middle" class="s">robot</text>
+    <text x="40" y="196" class="s b">controller</text>
+    <rect x="150" y="184" width="283" height="18" rx="3" class="box-c"/>
+    <text x="291" y="197" text-anchor="middle" class="s" style="fill:currentColor">APPROACH · tối đa 0,2 m/s</text>
+    <rect x="433" y="184" width="283" height="18" rx="3" class="box-a"/>
+    <text x="574" y="197" text-anchor="middle" class="s" style="fill:currentColor">BLIND · tối đa 0,08 m/s (fsm.blind_zone 0,6 m)</text>
+    <text x="40" y="228" class="s b">estimator</text>
+    <rect x="150" y="216" width="448" height="18" rx="3" class="box-ok"/>
+    <text x="374" y="229" text-anchor="middle" class="s" style="fill:currentColor">OK · đo mỗi khung</text>
+    <rect x="598" y="216" width="282" height="18" rx="3" class="box-a"/>
+    <text x="739" y="229" text-anchor="middle" class="s" style="fill:currentColor">BLIND_HOLD · giữ pose (0,6 m tới mặt vật)</text>
+    <text x="470" y="40" text-anchor="middle" class="s">trục dock, đơn vị m, tính từ mặt trước của vật</text>
+    <line x1="598" y1="56" x2="714" y2="56" class="ln" marker-start="url(#ah11)" marker-end="url(#ah11)"/>
+    <text x="656" y="50" text-anchor="middle" class="ms">slowdown 0.25</text>
+  </svg>
+  </div>
+  <figcaption>Những khoảng cách quan trọng của đường B, với tham số mặc định. Controller giảm tốc sớm (BLIND, khi còn 0,6 m tới điểm dừng). Estimator vẫn đo tiếp tới khi robot cách mặt vật 0,6 m rồi mới chuyển sang giữ pose. Trong 0,25 m cuối, tốc độ còn giảm theo <code>slowdown_radius</code>; robot dừng khi còn dưới 1 cm (<code>goal_tol_x</code>).</figcaption>
+</figure>
+
+<h3 id="u-trouble"><span class="num">2.10</span>Xử lý sự cố</h3>
+<p>Khi robot không dock được, bắt đầu từ trường <code>status</code> trong <code>/pose_estimator/status</code>:</p>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 290" role="img" aria-label="Cây xử lý sự cố theo trạng thái: NO_POINTS do sai topic, thiếu TF hoặc ROI rỗng; NOT_FOUND do vật ngoài ROI hoặc template sai; LOW_QUALITY do template khác vật thật hoặc sai ngoại tham số; DEGENERATE do mặt vật phẳng; AMBIGUOUS do hai vật giống nhau; OK mà robot đứng yên thì kiểm tra controller.">
+    <rect x="300" y="12" width="360" height="44" rx="8" class="box-c"/>
+    <text x="480" y="39" text-anchor="middle" class="m b">ros2 topic echo /pose_estimator/status</text>
+    <path d="M480 56 V76 M82 76 H878 M82 76 V100 M240 76 V100 M398 76 V100 M562 76 V100 M720 76 V100 M878 76 V100" class="ln"/>
+    <g>
+      <rect x="8" y="100" width="148" height="176" rx="8" class="box"/>
+      <text x="82" y="124" text-anchor="middle" class="m b ta">NO_POINTS</text>
+      <text x="20" y="152" class="s">sai topic cloud</text>
+      <text x="20" y="172" class="s">thiếu TF tới camera</text>
+      <text x="20" y="192" class="s">ROI không chứa vật</text>
+      <text x="20" y="222" class="s b" style="fill:currentColor">→ ros2 topic hz</text>
+      <text x="20" y="242" class="s b" style="fill:currentColor">→ view_frames</text>
+      <rect x="166" y="100" width="148" height="176" rx="8" class="box"/>
+      <text x="240" y="124" text-anchor="middle" class="m b ta">NOT_FOUND</text>
+      <text x="178" y="152" class="s">vật nằm ngoài ROI</text>
+      <text x="178" y="172" class="s">template sai loại vật</text>
+      <text x="178" y="222" class="s b" style="fill:currentColor">→ nới roi.*</text>
+      <text x="178" y="242" class="s b" style="fill:currentColor">→ xem template</text>
+      <text x="178" y="262" class="s b" style="fill:currentColor">   bằng CloudCompare</text>
+      <rect x="324" y="100" width="148" height="176" rx="8" class="box"/>
+      <text x="398" y="124" text-anchor="middle" class="m b ta">LOW_QUALITY</text>
+      <text x="336" y="152" class="s">template khác vật thật</text>
+      <text x="336" y="172" class="s">sai ngoại tham số</text>
+      <text x="336" y="192" class="s">camera nhiễu</text>
+      <text x="336" y="222" class="s b" style="fill:currentColor">→ quét template thật</text>
+      <text x="336" y="242" class="s b" style="fill:currentColor">→ hiệu chuẩn TF</text>
+      <text x="336" y="262" class="s b" style="fill:currentColor">→ min_points 2</text>
+      <rect x="488" y="100" width="148" height="176" rx="8" class="box-bad"/>
+      <text x="562" y="124" text-anchor="middle" class="m b tbad">DEGENERATE</text>
+      <text x="500" y="152" class="s">mặt vật phẳng,</text>
+      <text x="500" y="172" class="s">thiếu đặc trưng ngang</text>
+      <text x="500" y="222" class="s b" style="fill:currentColor">→ làm dock chữ V</text>
+      <text x="500" y="242" class="s b" style="fill:currentColor">→ thêm vật mốc</text>
+      <rect x="646" y="100" width="148" height="176" rx="8" class="box-bad"/>
+      <text x="720" y="124" text-anchor="middle" class="m b tbad">AMBIGUOUS</text>
+      <text x="658" y="152" class="s">hai vật giống nhau</text>
+      <text x="658" y="172" class="s">cùng nằm trong ROI</text>
+      <text x="658" y="222" class="s b" style="fill:currentColor">→ thu hẹp roi.*</text>
+      <text x="658" y="242" class="s b" style="fill:currentColor">→ use_expected_pose</text>
+      <rect x="804" y="100" width="148" height="176" rx="8" class="box-ok"/>
+      <text x="878" y="124" text-anchor="middle" class="m b tok">OK mà đứng yên</text>
+      <text x="816" y="152" class="s">chưa gọi ~/start</text>
+      <text x="816" y="172" class="s">sai topic cmd_vel</text>
+      <text x="816" y="192" class="s">FAILED vì timeout</text>
+      <text x="816" y="222" class="s b" style="fill:currentColor">→ xem ~/state</text>
+      <text x="816" y="242" class="s b" style="fill:currentColor">→ ros2 topic echo</text>
+      <text x="816" y="262" class="s b" style="fill:currentColor">   /cmd_vel</text>
+    </g>
+  </svg>
+  </div>
+  <figcaption>Tra lỗi theo trạng thái. Hàng trên mỗi ô là nguyên nhân thường gặp, hàng dưới (đậm) là việc cần làm. Bảng đầy đủ hơn, kèm cảnh báo TF và lỗi numpy, nằm cuối <code>docs/HUONG_DAN_TRIEN_KHAI.md</code>.</figcaption>
+</figure>
+<div class="tbl"><table>
+  <thead><tr><th>Hiện tượng khác</th><th>Nguyên nhân</th><th>Cách xử lý</th></tr></thead>
+  <tbody>
+    <tr><td>Cảnh báo “Chưa tra được TF — bỏ khung”</td><td>Chưa có odom/TF, hoặc lệch đồng hồ</td><td>Kiểm tra nguồn TF <code>odom→base_link</code>; trong mô phỏng phải có <code>use_sim_time:=true</code>.</td></tr>
+    <tr><td>Lỗi numpy/scipy “dtype size changed”</td><td>numpy 2.x trong <code>~/.local</code></td><td><code>source env.sh</code> trước khi chạy.</td></tr>
+    <tr><td>Robot lắc qua lại khi tiến vào</td><td>Luật điều khiển quá gắt so với đế robot</td><td>Giảm <code>law.k_phi</code>, <code>law.k_delta</code>, <code>law.v_max</code>; kiểm tra <code>fsm.acc_v</code>, <code>fsm.acc_w</code>.</td></tr>
+    <tr><td><code>BLIND_HOLD</code> xuất hiện</td><td>Bình thường khi robot đã rất gần vật</td><td>Không cần làm gì.</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- ======================================================================= PHẦN 3 -->
+<section id="p3">
+<div class="part-head"><p class="eyebrow">Phần 3</p><h2>Cách xem mô phỏng</h2></div>
+<p class="intro">Mô phỏng cho phép thử toàn bộ chuỗi camera → pose → điều khiển trước khi đụng tới robot thật. Mọi ảnh và video trong phần này được chụp từ mô phỏng chạy thật trên máy dev sáng 17/11/2026, với robot xuất phát lệch ngang 0,35 m và lệch hướng −15°.</p>
+
+<h3 id="s-what"><span class="num">3.1</span>Mô phỏng gồm những gì</h3>
+<figure class="fig">
+  <div class="svgbox">
+  <svg class="dg" viewBox="0 0 960 300" role="img" aria-label="Kiến trúc mô phỏng: Gazebo chứa thế giới, robot vi sai, camera RGB-D và bộ phát pose thật; ros_gz_bridge chuyển các topic sang ROS 2; phía ROS 2 có TF tĩnh của camera, pose_estimator, docking_controller và RViz.">
+    <defs><marker id="ah12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+    <rect x="16" y="16" width="330" height="268" rx="10" class="box"/>
+    <text x="32" y="42" class="b">Gazebo Harmonic (gz sim)</text>
+    <rect x="32" y="58" width="298" height="46" rx="6" class="box-a"/>
+    <text x="44" y="78" class="small">world: pallet · rack · tường · thùng</text>
+    <text x="44" y="95" class="s">sinh từ cùng mô hình hộp với template</text>
+    <rect x="32" y="114" width="298" height="46" rx="6" class="box"/>
+    <text x="44" y="134">robot docking_bot · đế vi sai</text>
+    <text x="44" y="151" class="s">bánh 0,08 m · rộng 0,44 m · odom 50 Hz</text>
+    <rect x="32" y="170" width="298" height="46" rx="6" class="box-c"/>
+    <text x="44" y="190">camera RGB-D 424×240 · 15 Hz</text>
+    <text x="44" y="207" class="s">HFOV 87° · tầm 0,2–6 m · nhiễu σ 5 mm</text>
+    <rect x="32" y="226" width="298" height="46" rx="6" class="box"/>
+    <text x="44" y="246">PosePublisher</text>
+    <text x="44" y="263" class="s">pose thật của robot để chấm điểm</text>
+    <rect x="392" y="16" width="190" height="268" rx="10" class="box-c"/>
+    <text x="487" y="42" text-anchor="middle" class="m b">ros_gz_bridge</text>
+    <text x="408" y="74" class="ms">/clock</text>
+    <text x="408" y="100" class="ms">/cmd_vel  ← từ ROS</text>
+    <text x="408" y="126" class="ms">/odom</text>
+    <text x="408" y="152" class="ms">/tf (odom→base_link)</text>
+    <text x="408" y="178" class="ms">/camera/points</text>
+    <text x="408" y="204" class="ms">/camera/image</text>
+    <text x="408" y="230" class="ms">/ground_truth/pose</text>
+    <line x1="346" y1="150" x2="390" y2="150" class="ln" marker-start="url(#ah12)" marker-end="url(#ah12)"/>
+    <line x1="582" y1="150" x2="626" y2="150" class="ln" marker-start="url(#ah12)" marker-end="url(#ah12)"/>
+    <rect x="628" y="16" width="316" height="268" rx="10" class="box"/>
+    <text x="644" y="42" class="b">ROS 2 (cùng máy)</text>
+    <text x="644" y="76" class="m">static_transform_publisher</text>
+    <text x="644" y="94" class="s">base_link→camera_link (0,25; 0; 0,30; chúc 10°)</text>
+    <text x="644" y="128" class="m">pose_estimator</text>
+    <text x="644" y="146" class="s">template euro_pallet.npz, use_sim_time</text>
+    <text x="644" y="180" class="m">docking_controller</text>
+    <text x="644" y="198" class="s">chờ lệnh ~/start</text>
+    <text x="644" y="232" class="m">rviz2</text>
+    <text x="644" y="250" class="s">rviz/docking.rviz, fixed frame odom</text>
+  </svg>
+  </div>
+  <figcaption>Ba khối của mô phỏng, khởi chạy bằng một lệnh <code>sim.launch.py</code>. Gazebo tạo dữ liệu giống robot thật: cloud từ camera, odometry, TF. <code>ros_gz_bridge</code> chuyển chúng sang ROS 2. Phía ROS 2 chạy đúng các node sẽ chạy trên robot thật. Vì thế giới Gazebo sinh từ cùng mô hình hộp với template, mọi sai số đo được là sai số của thuật toán, không phải do mô hình lệch.</figcaption>
+</figure>
+
+<h3 id="s-launch"><span class="num">3.2</span>Khởi chạy</h3>
+<p>Có hai cách. Cách nhanh nhất là bấm nút <strong>Docking Sim</strong> trên taskbar (mục 2.2). Hoặc gõ lệnh sau khi <code>source env.sh</code>:</p>
+<div class="code"><pre>ros2 launch camera3d_docking_sim sim.launch.py</pre></div>
+<p>Sau vài giây, hai cửa sổ hiện ra: <strong>Gazebo</strong> (thế giới mô phỏng) và <strong>RViz</strong> (những gì robot “nhìn thấy” và hiểu). Lần chạy dùng cho các ảnh dưới đây có thêm tham số vị trí xuất phát:</p>
+<div class="code"><pre>ros2 launch camera3d_docking_sim sim.launch.py x:=1.1 y:=0.35 yaw:=-15</pre></div>
+<figure class="fig shot">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img src="img/s01-overview.webp" width="1600" height="872" alt="Màn hình sau khi khởi chạy: cửa sổ Gazebo bên trái với robot, pallet, rack, tường và thùng; cửa sổ RViz bên phải với đám mây điểm và template xanh lá phủ lên pallet." loading="lazy" decoding="async">
+  </button>
+  <figcaption>Màn hình ngay sau khi khởi chạy (đã xếp hai cửa sổ cạnh nhau). Trong RViz, đám điểm xanh lá đã phủ lên pallet: estimator tìm thấy vật trước cả khi bạn ra lệnh docking.</figcaption>
+</figure>
+<div class="tbl"><table>
+  <thead><tr><th>Tham số launch</th><th>Mặc định</th><th>Ý nghĩa</th></tr></thead>
+  <tbody>
+    <tr><td><code>x</code>, <code>y</code>, <code>yaw</code></td><td>1.0, 0.0, 0.0</td><td>Vị trí xuất phát của robot trong world (m, m, độ). Mặt trước pallet ở x = 3,0 m.</td></tr>
+    <tr><td><code>headless</code></td><td><code>false</code></td><td><code>true</code>: không mở cửa sổ Gazebo, chạy nhanh hơn (dùng cho test tự động).</td></tr>
+    <tr><td><code>rviz</code></td><td><code>true</code></td><td><code>false</code>: không mở RViz.</td></tr>
+    <tr><td><code>docking</code></td><td><code>true</code></td><td><code>false</code>: chỉ chạy thế giới + bridge, bạn tự chạy estimator/controller.</td></tr>
+    <tr><td><code>template</code></td><td><code>euro_pallet.npz</code></td><td>Template estimator dùng.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="s-gazebo"><span class="num">3.3</span>Xem trong Gazebo</h3>
+<figure class="fig shot">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img src="img/s02-gazebo.webp" width="1600" height="872" alt="Cửa sổ Gazebo có đánh số: 1 robot, 2 camera, 3 pallet, 4 rack, 5 tường, 6 thùng, 7 nút chạy dừng, 8 cây đối tượng, 9 hệ số thời gian thực, 10 thanh công cụ." loading="lazy" decoding="async">
+  </button>
+  <figcaption>Cửa sổ Gazebo. <b>1</b> robot <code>docking_bot</code> · <b>2</b> camera RGB-D (cao 0,30 m, chúc 10°) · <b>3</b> pallet EUR, mặt trước ở x = 3,0 m · <b>4</b> rack · <b>5</b> tường · <b>6</b> thùng gây nhiễu · <b>7</b> chạy/dừng, chạy từng bước, đặt lại · <b>8</b> Entity Tree: danh sách vật trong thế giới · <b>9</b> RTF: tốc độ mô phỏng so với thời gian thực (100 % là bằng) · <b>10</b> thanh công cụ thêm hình khối, di chuyển, xoay, chụp ảnh.</figcaption>
+</figure>
+<div class="tbl"><table>
+  <thead><tr><th>Thao tác trong khung 3D của Gazebo</th><th>Tác dụng</th></tr></thead>
+  <tbody>
+    <tr><td>Giữ chuột trái + kéo</td><td>Dịch khung nhìn</td></tr>
+    <tr><td>Giữ chuột giữa + kéo, hoặc <kbd>Shift</kbd> + chuột trái + kéo</td><td>Xoay quanh điểm đang nhìn</td></tr>
+    <tr><td>Lăn chuột, hoặc giữ chuột phải + kéo</td><td>Phóng to / thu nhỏ</td></tr>
+    <tr><td>Nút ▮▮ ở góc dưới trái</td><td>Tạm dừng thế giới để quan sát kỹ (robot và đồng hồ mô phỏng cùng dừng)</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="s-rviz"><span class="num">3.4</span>Xem trong RViz</h3>
+<p>Gazebo cho thấy thế giới “thật”. RViz cho thấy robot hiểu thế giới đó thế nào: dữ liệu camera, template đã khớp và pose phát ra. Khi đánh giá thuật toán, cửa sổ này quan trọng hơn.</p>
+<figure class="fig shot">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img src="img/s03-rviz.webp" width="1600" height="872" alt="Cửa sổ RViz có đánh số: 1 danh sách hiển thị, 2 đám mây camera, 3 template đã khớp màu xanh lá, 4 trục pose dock, 5 trục base_link, 6 trục camera_link, 7 bảng góc nhìn." loading="lazy" decoding="async">
+  </button>
+  <figcaption>Cửa sổ RViz với cấu hình <code>rviz/docking.rviz</code> (đã kéo gần cho dễ nhìn). <b>1</b> Displays: bật/tắt từng lớp · <b>2</b> Camera cloud: điểm từ <code>/camera/points</code>, màu theo độ cao (đỏ thấp, vàng–xanh cao) · <b>3</b> Aligned template: template đã khớp, màu xanh lá. Phủ khít lên pallet nghĩa là estimator đang đúng · <b>4</b> Detected dock pose: trục tọa độ tại tâm mặt trước pallet · <b>5</b> TF <code>base_link</code> (robot) · <b>6</b> TF <code>camera_link</code> · <b>7</b> Views: chỉnh tiêu điểm và khoảng cách nhìn.</figcaption>
+</figure>
+<div class="tbl"><table>
+  <thead><tr><th>Thao tác trong khung 3D của RViz</th><th>Tác dụng</th></tr></thead>
+  <tbody>
+    <tr><td>Giữ chuột trái + kéo</td><td>Xoay quanh tiêu điểm</td></tr>
+    <tr><td>Giữ chuột giữa + kéo, hoặc <kbd>Shift</kbd> + chuột trái + kéo</td><td>Dịch tiêu điểm (di chuyển X/Y)</td></tr>
+    <tr><td>Lăn chuột, hoặc giữ chuột phải + kéo</td><td>Phóng to / thu nhỏ</td></tr>
+    <tr><td>Bỏ tích một mục trong Displays</td><td>Ẩn lớp đó, ví dụ ẩn Camera cloud để chỉ nhìn template</td></tr>
+  </tbody>
+</table></div>
+<div class="note tip">
+  <span class="lbl">Mẹo quan sát</span>
+  <p>Khi robot rất gần pallet (vùng mù), camera gần như chỉ còn thấy sàn và mép pallet, nhưng trục “Detected dock pose” vẫn đứng yên đúng chỗ: đó là pose do Kalman giữ (trạng thái <code>BLIND_HOLD</code>, mục 1.10).</p>
+</div>
+
+<h3 id="s-run"><span class="num">3.5</span>Ra lệnh docking và theo dõi</h3>
+<p>Mở một terminal mới (<code>source env.sh</code>) và gọi:</p>
+<div class="code"><pre>ros2 service call /docking_controller/start std_srvs/srv/Trigger</pre></div>
+<p>Robot sẽ cua về trục của pallet, giảm tốc khi còn 0,6 m tới điểm dừng, rồi dừng trước mặt pallet 0,35 m. Video quay lại đúng lần chạy đó (Gazebo bên trái, RViz bên phải, thời gian thực):</p>
+<figure class="fig">
+  <video id="dockvid" controls muted loop playsinline autoplay preload="metadata" poster="img/dock-run-poster.webp" width="1072" height="720">
+    <source src="img/dock-run.mp4" type="video/mp4">
+  </video>
+  <figcaption>Một lần docking hoàn chỉnh, 19 giây. Để ý bên RViz: trục TF của robot (đường vàng nối <code>base_link</code> với <code>camera_link</code>) tiến dần tới pallet, trong khi template xanh lá đứng yên vì vật đứng yên trong <code>odom</code>.</figcaption>
+</figure>
+<figure class="fig shot">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img src="img/s07-filmstrip.webp" width="1400" height="942" alt="Bốn khung hình: 0 giây bắt đầu APPROACH; 2,7 giây đang cua; 9,8 giây ở BLIND, robot gần pallet; 14,1 giây DOCKED trước pallet." loading="lazy" decoding="async">
+  </button>
+  <figcaption>Bốn khoảnh khắc của video, mốc thời gian tính từ lúc gọi <code>start</code>. Ở khung BLIND (9,8 s), camera đã rất gần nên cloud của pallet chuyển sang màu vàng (điểm cao, gần camera); robot vẫn đi tiếp theo pose được giữ.</figcaption>
+</figure>
+<p>Đồng thời, một script nhỏ ghi lại pose thật của robot (từ Gazebo), trạng thái controller và estimator. Kết quả:</p>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f11-sim-run-light.webp" width="1224" height="651" alt="Trái: quỹ đạo thật từ điểm xuất phát lệch tới đích, đoạn APPROACH màu xanh, đoạn BLIND màu cam. Phải: khoảng cách còn lại giảm về 0 lúc 14,1 giây; lệch ngang từ 35 cm và lệch hướng từ −15 độ hội tụ về 0; estimator báo OK tới khoảng 9,8 giây rồi BLIND_HOLD." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f11-sim-run-dark.webp" width="1224" height="651" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Dữ liệu thật của lần chạy trong video. <b>A</b>: quỹ đạo thật nhìn từ trên; vùng xanh nhạt là tầm nhìn camera lúc xuất phát. <b>B</b>: controller vào BLIND sau 5,5 s và DOCKED sau 14,1 s. Pose cuối thật: dọc −1,0 cm (dừng sớm 1 cm theo <code>goal_tol_x</code>), <b>ngang +0,1 cm, yaw +0,22°</b>. Dải dưới cùng cho thấy estimator đo mới (OK, 74 khung) tới khi robot cách mặt pallet 0,6 m, sau đó giữ pose (BLIND_HOLD, 40 khung).</figcaption>
+</figure>
+<div class="note">
+  <span class="lbl">Điều thú vị trong lần chạy này</span>
+  <p>Pose của pallet trong <code>odom</code> mà estimator báo đã dịch đi 1,5 cm và 1,2° trong lúc robot chạy, vì odometry bánh xe trong Gazebo bị trượt khi cua. Robot vẫn dừng đúng chỗ (sai 0,1 cm) vì phép đo của camera là <em>tương đối</em> giữa robot và vật: odometry trôi thế nào thì pose vật trong <code>odom</code> trôi theo đúng như vậy.</p>
+</div>
+
+<h3 id="s-e2e"><span class="num">3.6</span>Test tự động E2E</h3>
+<p>Thay vì bấm tay, script E2E tự khởi chạy mô phỏng không giao diện cho từng điểm xuất phát, gọi <code>start</code>, chờ DOCKED hoặc FAILED, rồi so pose thật của robot với đích:</p>
+<div class="code"><pre>bash ros2_ws/src/camera3d_docking_sim/scripts/run_e2e.sh</pre></div>
+<figure class="fig">
+  <div class="term"><div class="bar"><i></i><i></i><i></i><span>logs/e2e_run.log (đường dẫn log rút gọn)</span></div><pre>[docking3d] ROS 2 jazzy + workspace đã nạp (PYTHONNOUSERSITE=1)
+[1/3] xuất phát (x=1.6, y=0.0, yaw=0.0°) ... log: …/logs/e2e_case0.log
+    -> <span class="g">DOCKED</span>: dọc=-1.1 cm, ngang=+0.0 cm, yaw=-0.05° (16 s) <span class="g">PASS</span>
+[2/3] xuất phát (x=1.5, y=0.25, yaw=15.0°) ... log: …/logs/e2e_case1.log
+    -> <span class="g">DOCKED</span>: dọc=-1.1 cm, ngang=+0.2 cm, yaw=+0.82° (19 s) <span class="g">PASS</span>
+[3/3] xuất phát (x=1.7, y=-0.3, yaw=-20.0°) ... log: …/logs/e2e_case2.log
+    -> <span class="g">DOCKED</span>: dọc=-1.1 cm, ngang=-0.3 cm, yaw=-1.77° (21 s) <span class="g">PASS</span>
+KẾT QUẢ: <span class="g">3/3 PASS</span> (ngưỡng ngang ≤ 2 cm, yaw ≤ 2.0°, dọc ≤ 3 cm)</pre></div>
+  <figcaption>Kết quả thật do session phát triển chạy. “dọc = −1,1 cm” là thiết kế: robot dừng khi còn dưới 1 cm. Mỗi lần chạy dùng một <code>ROS_DOMAIN_ID</code> riêng nên không lẫn với mô phỏng khác đang mở.</figcaption>
+</figure>
+<figure class="fig">
+  <button class="zoom" type="button" aria-label="Phóng to hình">
+    <img class="th-light" src="img/f12-e2e-light.webp" width="955" height="570" alt="Bốn điểm xuất phát của test E2E trước pallet và kết quả: cả bốn DOCKED, lệch ngang tối đa 0,3 cm, yaw tối đa 1,77 độ." loading="lazy" decoding="async">
+    <img class="th-dark" src="img/f12-e2e-dark.webp" width="955" height="570" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  </button>
+  <figcaption>Các điểm xuất phát đã thử. Ca khó nhất (#3: lệch −0,3 m và −20°, chỉ cách điểm dừng 0,95 m) cho yaw cuối 1,77°. Lùi điểm xuất phát ra 1,25 m (#4) thì còn 0,93°. Đây là lý do <code>staging_x_offset</code> của Nav2 được đặt −1,6 m.</figcaption>
+</figure>
+<p>Tự chọn điểm xuất phát (x, y, yaw trong world, cách nhau bởi dấu phẩy):</p>
+<div class="code"><pre>bash ros2_ws/src/camera3d_docking_sim/scripts/run_e2e.sh --starts "1.6,0,0" "1.4,-0.3,-20"</pre></div>
+
+<h3 id="s-more"><span class="num">3.7</span>Thử thêm kịch bản</h3>
+<div class="cols">
+  <div class="card"><h4>Đổi điểm xuất phát</h4><p class="small">Lệch nhiều hơn để xem luật điều khiển cua thế nào. Nên giữ pallet nằm trong tầm nhìn 87° của camera.</p><div class="code" style="margin-bottom:0"><pre>ros2 launch camera3d_docking_sim sim.launch.py x:=1.2 y:=-0.3 yaw:=-20</pre></div></div>
+  <div class="card"><h4>Tự chạy node</h4><p class="small">Chỉ mở thế giới, rồi chạy estimator/controller ở terminal khác để đổi tham số dễ hơn.</p><div class="code" style="margin-bottom:0"><pre>ros2 launch camera3d_docking_sim sim.launch.py docking:=false</pre></div><div class="code" style="margin-bottom:0"><pre>ros2 launch camera3d_docking docking.launch.py points_topic:=/camera/points use_sim_time:=true</pre></div></div>
+  <div class="card"><h4>Chạy không giao diện</h4><p class="small">Nhẹ máy hơn; xem kết quả qua topic thay vì cửa sổ.</p><div class="code" style="margin-bottom:0"><pre>ros2 launch camera3d_docking_sim sim.launch.py headless:=true rviz:=false</pre></div></div>
+  <div class="card"><h4>Quan sát bằng số</h4><p class="small">Mở PlotJuggler từ taskbar, kéo <code>/cmd_vel</code> và <code>/pose_estimator/status</code> vào để vẽ đồ thị trong lúc docking.</p></div>
+</div>
+<div class="note">
+  <span class="lbl">Tắt mô phỏng</span>
+  <p>Nhấn <kbd>Ctrl</kbd>+<kbd>C</kbd> ở terminal đã chạy <code>ros2 launch</code>. Nếu sau đó còn cửa sổ Gazebo treo, kiểm tra bằng <code>ps -eo pid,args | grep "[g]z sim"</code> rồi tắt các tiến trình đó.</p>
+</div>
+</section>
+
+<p class="end">Sổ tay viết cho dự án “Docking using Camera 3D”, ngày 17/11/2026. Hình có số liệu được sinh bằng chính code của gói <code>camera3d_docking</code>; ảnh chụp màn hình lấy từ mô phỏng Gazebo chạy trên máy dev. Script tạo lại hình nằm trong <code>docs/huong-dan/scripts/</code> (xem README ở đó).</p>
+</main>
+</div>
+</div>
+
+<div id="lb" hidden role="dialog" aria-modal="true" aria-label="Hình phóng to">
+  <img alt="">
+  <button type="button" id="lb-close">Đóng</button>
+</div>
+
+<script>
+(function(){
+  var lb = document.getElementById('lb'), lbImg = lb.querySelector('img'), lastBtn = null;
+  function visibleImg(btn){
+    var imgs = btn.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++){ if (getComputedStyle(imgs[i]).display !== 'none') return imgs[i]; }
+    return imgs[0];
+  }
+  document.querySelectorAll('.zoom').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var im = visibleImg(btn); lastBtn = btn;
+      lbImg.src = im.currentSrc || im.src; lbImg.alt = im.alt || '';
+      lb.hidden = false; document.getElementById('lb-close').focus();
+    });
+  });
+  function close(){ lb.hidden = true; lbImg.removeAttribute('src'); if (lastBtn) lastBtn.focus(); }
+  document.getElementById('lb-close').addEventListener('click', close);
+  lb.addEventListener('click', function(e){ if (e.target === lb) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !lb.hidden) close(); });
+
+  document.querySelectorAll('.code').forEach(function(box){
+    var pre = box.querySelector('pre'); if (!pre) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'copy'; b.textContent = 'Sao chép';
+    b.addEventListener('click', function(){
+      var text = pre.innerText.replace(/\n$/, '');
+      function done(){ b.textContent = 'Đã chép'; setTimeout(function(){ b.textContent = 'Sao chép'; }, 1400); }
+      function fallback(){ var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Đã chọn, nhấn Ctrl+C'; }
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+    });
+    box.appendChild(b);
+  });
+
+  var vid = document.getElementById('dockvid');
+  if (vid && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ vid.removeAttribute('autoplay'); try { vid.pause(); } catch (e) {} }
+
+  var toc = document.getElementById('tocbox');
+  if (window.matchMedia('(max-width: 1020px)').matches) toc.removeAttribute('open');
+  var links = {}; document.querySelectorAll('.toc a').forEach(function(a){ links[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting && links[en.target.id]){
+          document.querySelectorAll('.toc a.on').forEach(function(x){ x.classList.remove('on'); });
+          links[en.target.id].classList.add('on');
+        }
+      });
+    }, {rootMargin: '0px 0px -75% 0px'});
+    document.querySelectorAll('main h3[id], main section[id]').forEach(function(h){ io.observe(h); });
+  }
+})();
+</script>
+
+</body>
+</html>
