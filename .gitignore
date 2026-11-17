@@ -1,0 +1,39 @@
+# Sản phẩm build của colcon (tạo lại bằng `colcon build --symlink-install`)
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Log cài đặt (tools/logs) và log test E2E Gazebo (logs)
+/logs/
+/tools/logs/
+
+# Repo tham khảo: ~940 MB, mỗi thư mục là một repo git riêng.
+# Danh sách và commit để clone lại nằm trong references/README.md
+/references/*
+!/references/README.md
+
+# Sổ tiến độ của quy trình làm việc (nháp, không phải mã nguồn)
+/.superpowers/
+
+# Dữ liệu thu từ robot: cloud .pcd (cloud_saver), rosbag.
+# Muốn lưu một file cụ thể thì dùng: git add -f <file>
+*.pcd
+*.mcap
+*.db3
+rosbag2_*/
+
+# Editor / hệ điều hành
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Cấu hình Claude Code riêng từng máy
+.claude/settings.local.json
