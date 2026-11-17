@@ -615,6 +615,19 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
   <span class="lbl">Bảng trạng thái của estimator</span>
   <p><span class="pill ok">OK</span> pose đạt mọi tiêu chí, đã phát. <span class="pill info">BLIND_HOLD</span> robot đã vào vùng mù, đang phát pose giữ từ Kalman. <span class="pill warn">NO_POINTS</span> ROI có dưới 50 điểm. <span class="pill warn">NOT_FOUND</span> tìm kiếm không có ứng viên nào. <span class="pill warn">LOW_QUALITY</span>, <span class="pill bad">DEGENERATE</span>, <span class="pill bad">AMBIGUOUS</span> như bảng trên.</p>
 </div>
+<div class="note warn">
+  <span class="lbl">Giới hạn đã biết: vật lạ nằm sát vật cần dock</span>
+  <p>Thử nghiệm làm sau khi sổ tay ra đời (<code>benchmark --seg-study</code>, 40 tư thế mỗi cảnh, pallet cách 1,0–2,5 m) cho thấy bản hiện tại, chỉ dùng hình học, <strong>chưa chịu được vật lạ nằm sát vật</strong>: điểm của tường hoặc hàng hóa bị khớp nhầm, và có lúc vẫn báo <span class="pill ok">OK</span> với pose sai. Ở cảnh sạch thì 40/40 OK, không lần nào sai.</p>
+  <div class="tbl" style="margin:10px 0 12px"><table>
+    <thead><tr><th>Cảnh</th><th>Báo OK</th><th>Trong đó sai (&gt; 2 cm hoặc &gt; 2°)</th></tr></thead>
+    <tbody>
+      <tr><td>Tường sát sau pallet (5 cm)</td><td class="num">22/40</td><td class="num"><strong>8</strong></td></tr>
+      <tr><td>Pallet có hàng chồng, nhô ra 2 cm</td><td class="num">8/40</td><td class="num"><strong>8</strong></td></tr>
+      <tr><td>Giữa dãy hàng (khe 5 cm) + tường</td><td class="num">1/40</td><td class="num"><strong>1</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p>Cho tới khi thuật toán được sửa: dọn trống quanh chỗ dock. Nếu vật lạ chỉ nằm phía trên hoặc phía sau vật, hạ <code>roi.max</code> z xuống ngay trên vật (pallet: 0,20); đừng dùng cách này khi có hàng sát hai bên, vì lúc đó nhận sai còn nhiều hơn. Luôn nghiệm thu theo B6 và B8 tại chỗ dock thật. Nhánh <code>feat/segmentation-mask</code> (chưa gộp vào <code>main</code>) thử thêm mặt nạ segmentation: với mặt nạ đúng từng pixel thì cả ba cảnh trên đều 40/40, không sai; số liệu đầy đủ nằm trong README của nhánh đó.</p>
+</div>
 
 <h3 id="k-kalman"><span class="num">1.10</span>Bộ lọc Kalman và vùng mù</h3>
 <p>Khi robot tới rất gần, camera không còn thấy vật: vật nằm dưới tầm đo tối thiểu hoặc ra khỏi khung hình. Bài báo của Aghili (2022) xử lý tình huống tương tự bằng bộ lọc Kalman. Chương trình dùng ý tưởng đó với giả định đơn giản: <strong>vật đứng yên trong frame <code>odom</code></strong>.</p>
@@ -1152,6 +1165,7 @@ data: 'DOCKED: Đã dock (còn 0.9 cm)'</pre></div>
     <tr><td>Cảnh báo “Chưa tra được TF — bỏ khung”</td><td>Chưa có odom/TF, hoặc lệch đồng hồ</td><td>Kiểm tra nguồn TF <code>odom→base_link</code>; trong mô phỏng phải có <code>use_sim_time:=true</code>.</td></tr>
     <tr><td>Lỗi numpy/scipy “dtype size changed”</td><td>numpy 2.x trong <code>~/.local</code></td><td><code>source env.sh</code> trước khi chạy.</td></tr>
     <tr><td>Robot lắc qua lại khi tiến vào</td><td>Luật điều khiển quá gắt so với đế robot</td><td>Giảm <code>law.k_phi</code>, <code>law.k_delta</code>, <code>law.v_max</code>; kiểm tra <code>fsm.acc_v</code>, <code>fsm.acc_w</code>.</td></tr>
+    <tr><td>Báo <code>OK</code> nhưng robot vào lệch hẳn hoặc lệch hướng</td><td>Vật lạ sát vật (tường ngay sau, hàng chồng, hàng sát bên) bị khớp nhầm</td><td>Dọn trống quanh chỗ dock; xem khung “Giới hạn đã biết” ở mục 1.9.</td></tr>
     <tr><td><code>BLIND_HOLD</code> xuất hiện</td><td>Bình thường khi robot đã rất gần vật</td><td>Không cần làm gì.</td></tr>
   </tbody>
 </table></div>
